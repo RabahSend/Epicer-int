@@ -19,11 +19,13 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
+        working-directory: epicerIntApp
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run tests
+        working-directory: epicerIntApp
         run: python manage.py test
         env:
           DJANGO_SETTINGS_MODULE: config.settings
