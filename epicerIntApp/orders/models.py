@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.conf import settings
 
 class Distribution(models.Model):
     """Séance de distribution alimentaire."""
@@ -27,7 +27,7 @@ class Order(models.Model):
         CANCELLED = "cancelled", "Annulée"
 
     user = models.ForeignKey(
-        "users.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="orders",
     )
