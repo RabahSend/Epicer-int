@@ -1,1 +1,0 @@
-"""Couche présentation : HTTP / API."""
