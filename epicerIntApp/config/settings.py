@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'catalog.apps.CatalogConfig',
     'orders.apps.OrdersConfig',
     'notifications.apps.NotificationsConfig',
+    'core.apps.CoreConfig',
 ]
 
 AUTH_USER_MODEL = "users.User"
