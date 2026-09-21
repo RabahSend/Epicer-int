@@ -1,0 +1,78 @@
+:root {
+    --vert: #1f4d3a;
+    --vert-clair: #3d8b6e;
+    --creme: #f4f0e6;
+    --papier: #fcfaf6;
+    --encre: #1c1917;
+  }
+  
+  * { box-sizing: border-box; }
+  
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: var(--creme);
+    color: var(--encre);
+    line-height: 1.5;
+  }
+  
+  .site-header {
+    background: var(--vert);
+    color: white;
+  }
+  
+  .site-header__inner,
+  .site-main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem 1.25rem;
+  }
+  
+  .site-header__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  
+  .brand {
+    color: white;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 1.25rem;
+  }
+  
+  .site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .site-nav a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  .site-nav a:hover {
+    text-decoration: underline;
+  }
+  
+  .hero h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+  
+  .hero__eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.8rem;
+    color: var(--vert-clair);
+  }
+  
+  @media (max-width: 700px) {
+    .site-header__inner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
