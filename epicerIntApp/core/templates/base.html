@@ -12,7 +12,17 @@
     <div class="site-header__inner">
       <a class="brand" href="{% url 'home' %}">Épicer'INT</a>
 
-      <nav class="site-nav" aria-label="Navigation principale">
+        <button
+            type="button"
+            class="nav-toggle"
+            data-nav-toggle
+            aria-controls="site-nav"
+            aria-expanded="false"
+            >
+            Menu
+        </button>
+
+      <nav id="site-nav" class="site-nav" aria-label="Navigation principale">
         <a href="{% url 'home' %}">Accueil</a>
         <a href="{% url 'products' %}">Produits</a>
         {% if user.is_authenticated %}
@@ -37,5 +47,7 @@
   <main class="site-main">
     {% block content %}{% endblock %}
   </main>
+
+  <script src="{% static 'core/js/nav.js' %}"></script>
 </body>
 </html>
