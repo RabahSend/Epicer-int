@@ -3,7 +3,7 @@
 ## Informations sur la séance
 
 - **Date :** 16 septembre 2026
-- **Horaire :** 14 h 30 – 17 h 45
+- **Horaire :** 14 h 30 - 17 h 45
 - **Lieu :** E’0022
 - **Présents :** Adel et Rabah
 
