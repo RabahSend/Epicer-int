@@ -1,50 +1,69 @@
-# Séance 3 : Installation de l’environnement et prise en main de Git
+# Séance 3 : Organisation du projet et mise en place de la CI/CD
 
-## Contexte de la séance
+## Informations sur la séance
 
-Cette séance a été réalisée en dehors des heures de cours, le 22 septembre 2026, en visioconférence entre Rabah et Adel.
+- **Date :** 16 septembre 2026
+- **Horaire :** 14 h 30 – 17 h 45
+- **Lieu :** E’0022
+- **Présents :** Adel et Rabah
 
-L’objectif était de préparer l’environnement de travail, de revoir le fonctionnement de Git et de commencer à organiser les premières issues du projet.
+## Objectifs de la séance
 
-## Prise en main de Git
+Cette séance avait pour objectif de structurer le développement du projet Épicer’INT, d’organiser les fonctionnalités à réaliser et de mettre en place les premiers éléments techniques.
 
-Rabah a expliqué à Adel les principales commandes et le fonctionnement général de Git.
+## Mise en place du projet
 
-Ils ont notamment vu comment :
+L’architecture initiale de l’application Django a été ajoutée au dépôt. Une première Pull Request a permis d’intégrer cette architecture dans la branche principale.
 
-- récupérer le projet sur l’ordinateur ;
-- consulter les fichiers modifiés ;
-- créer et utiliser une branche ;
-- enregistrer les modifications avec des commits ;
-- envoyer les modifications sur GitHub ;
-- récupérer les dernières modifications du dépôt.
+Cette base contient les premiers fichiers de configuration du projet ainsi que l’application consacrée aux utilisateurs.
 
-Cette prise en main était nécessaire pour leur permettre de travailler sur le même projet sans modifier directement la branche principale.
+## Organisation du GitHub Project
 
-## Installation de l’environnement
+Adel et Rabah ont mis en place un GitHub Project afin de centraliser et de suivre les différentes tâches.
 
-Rabah a ensuite aidé Adel à installer et à configurer les différents outils nécessaires au développement du projet.
+Les principales fonctionnalités du cahier des charges ont été créées sous forme d’issues :
 
-Ils ont préparé l’environnement Python, installé les dépendances et vérifié le lancement de l’application Django.
+- gestion des utilisateurs et authentification ;
+- gestion des produits et des stocks ;
+- gestion des commandes et des paiements ;
+- gestion des distributions et de la récupération des commandes ;
+- système de notifications ;
+- tableau de bord administrateur et statistiques.
 
-L’environnement de test a également été configuré afin de pouvoir vérifier progressivement le fonctionnement des fonctionnalités développées.
+Les issues ont été organisées dans le backlog. Différents statuts ont été utilisés pour suivre leur avancement : `Backlog`, `Ready`, `In progress`, `In review` et `Done`.
 
-## Découverte du projet
+Des itérations ont également été configurées afin de répartir les tâches sur les différentes périodes de développement.
 
-Rabah a présenté à Adel l’organisation générale du projet Django et le rôle des principales applications :
+## Estimation et répartition du travail
 
-- `users` pour les utilisateurs ;
-- `catalog` pour les produits ;
-- `orders` pour les commandes ;
-- `notifications` pour les notifications ;
-- `core` pour les éléments communs du site.
+Une première estimation du temps nécessaire à chaque issue a été effectuée afin d’évaluer la charge de travail.
 
-## Préparation des premières issues
+Les tâches ont ensuite été réparties entre Adel et Rabah. Cette répartition pourra évoluer en fonction de l’avancement, des dépendances entre les fonctionnalités et des difficultés rencontrées.
 
-Rabah et Adel ont commencé à réfléchir aux premières issues à créer à partir du cahier des charges.
+## Mise en place de la CI/CD
 
-L’objectif était de découper les grandes fonctionnalités en tâches plus petites afin de pouvoir avancer progressivement et de mieux suivre le travail réalisé.
+Une pipeline CI/CD a été mise en place avec GitHub Actions afin d’automatiser les premières vérifications du projet.
+
+Une issue spécifique a été créée pour suivre ce travail. Les modifications ont été réalisées sur une branche dédiée puis intégrées dans la branche principale à l’aide d’une Pull Request.
+
+Cette pipeline constitue une première base sur laquelle des tests et d’autres contrôles de qualité pourront être ajoutés.
+
+## Organisation du workflow Git
+
+Une méthode de travail a été définie pour relier les issues et les modifications apportées au projet.
+
+Chaque tâche peut être associée à une issue GitHub. Une branche dédiée est ensuite créée pour réaliser les modifications. Le travail est enregistré à travers des commits puis intégré dans `main` à l’aide d’une Pull Request.
+
+Cette organisation permet de conserver une trace claire du travail réalisé.
+
+## Cahier de laboratoire
+
+Un cahier de laboratoire a été ajouté dans le dossier :
+
+`docs/cahiers-de-labo/`
+
+Il permet de conserver une trace du travail effectué à chaque séance, des décisions prises, des difficultés rencontrées et de l’évolution du projet.
 
 ## Prochaines étapes
 
-La prochaine étape sera de terminer l’organisation des issues, de les ajouter au GitHub Project et de commencer le développement sur des branches dédiées.
+Les prochaines étapes seront consacrées à la prise en main de Git, à la préparation des environnements locaux et au développement des premières issues.
