@@ -3,7 +3,42 @@
 {% block content %}
   <section class="hero">
     <p class="hero__eyebrow">Les produits</p>
-    <h1>Tous les produits disponibles</h1>
-    <p>Découvrez tous les produits disponibles sur Épicer'INT.</p>
+    <h1>Disponibilités des produits</h1>
+    <p>Consultez les stocks proposés lors des distributions Épicer'INT.</p>
+  </section>
+
+  <section class="product-list" aria-label="Catalogue des produits">
+    {% for product in products %}
+      <article class="product-item">
+        <div>
+          <h2>{{ product.name }}</h2>
+          <p>{{ product.get_category_display }} · {{ product.price }} €</p>
+          {% if product.description %}<p>{{ product.description }}</p>{% endif %}
+          {% if product.stock > 0 %}
+            <p class="availability availability--in-stock">Disponible · {{ product.stock }} en stock</p>
+          {% else %}
+            <p class="availability">Indisponible</p>
+          {% endif %}
+        </div>
+        {% if user.is_authenticated and user.is_member %}
+          {% if product.stock > 0 %}
+            <form action="{% url 'add_to_cart' product.pk %}" method="post">
+              {% csrf_token %}
+              <label for="quantity-{{ product.pk }}">Quantité</label>
+              <input id="quantity-{{ product.pk }}" name="quantity" type="number" min="1" max="{{ product.stock }}" value="1" required>
+              <button type="submit">Ajouter au panier</button>
+            </form>
+          {% else %}
+            <p>Indisponible pour le moment</p>
+          {% endif %}
+        {% elif user.is_authenticated %}
+          <a class="button-link" href="{% url 'profile' %}">Cotiser pour commander</a>
+        {% else %}
+          <a class="button-link" href="{% url 'signup' %}">Adhérer et créer un compte</a>
+        {% endif %}
+      </article>
+    {% empty %}
+      <p>Aucun produit n'est actuellement proposé.</p>
+    {% endfor %}
   </section>
 {% endblock %}
