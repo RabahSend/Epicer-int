@@ -1,10 +1,17 @@
 # Séance 2 : Recueil du besoin et rédaction du cahier des charges
 
+## Informations sur la séance
+
+- **Date :** 10 septembre 2026
+- **Horaire :** 10 h 00 – 13 h 15
+- **Lieu :** C206
+- **Présents :** Adel et Rabah
+
 ## Objectifs de la séance
 
 Cette séance avait pour objectif de mieux comprendre les besoins de l’association Épicer’INT et de définir les principales fonctionnalités du futur site.
 
-Rabah et Adel ont rencontré les membres de l’association afin d’échanger sur son fonctionnement actuel, les difficultés rencontrées et les améliorations attendues.
+Adel et Rabah ont rencontré les membres de l’association afin d’échanger sur son fonctionnement actuel, les difficultés rencontrées et les améliorations attendues.
 
 ## Rencontre avec le client
 
@@ -25,7 +32,7 @@ Le client a présenté plusieurs besoins :
 
 ## Rédaction du cahier des charges
 
-À la suite de cette rencontre, Rabah et Adel ont commencé à rédiger le cahier des charges du projet.
+À la suite de cette rencontre, Adel et Rabah ont commencé à rédiger le cahier des charges du projet.
 
 Les besoins ont été regroupés en plusieurs parties :
 
@@ -53,4 +60,4 @@ Certains éléments devront être précisés au cours du projet :
 
 ## Prochaines étapes
 
-Les prochaines étapes consisteront à transformer les fonctionnalités du cahier des charges en issues et à préparer l’environnement de développement.
+Les prochaines étapes consisteront à préparer l’architecture du projet, à transformer les fonctionnalités du cahier des charges en issues et à organiser le travail sur GitHub.
