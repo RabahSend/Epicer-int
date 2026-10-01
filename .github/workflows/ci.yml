@@ -10,6 +10,21 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: epicerint
+          POSTGRES_USER: epicerint
+          POSTGRES_PASSWORD: epicerint
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U epicerint -d epicerint"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -29,3 +44,8 @@ jobs:
         run: python manage.py test
         env:
           DJANGO_SETTINGS_MODULE: config.settings
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: epicerint
+          POSTGRES_USER: epicerint
+          POSTGRES_PASSWORD: epicerint

@@ -31,6 +31,11 @@ class UserManager(DjangoUserManager):
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
+    is_member = models.BooleanField(
+        default=False,
+        verbose_name="cotisation active",
+        help_text="À activer après validation de la cotisation de l'utilisateur.",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

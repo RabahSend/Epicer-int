@@ -24,6 +24,13 @@ Pour arrêter les services :
 docker compose down
 ```
 
+## Règles d'accès
+
+- Les visiteurs peuvent consulter les produits actifs et leur disponibilité.
+- La création d'un compte ne valide pas une cotisation et ne donne pas accès au panier.
+- Après cotisation auprès de l'association, un administrateur active le champ « cotisation active » du compte dans l'administration Django. Seuls les membres actifs peuvent ajouter des produits au panier, dans la limite du stock.
+- Le panier sert actuellement à préparer une sélection. Le paiement en ligne et la validation d'une commande ne sont pas encore disponibles.
+
 ---
 
 # Cahier des charges - Epicer'INT
