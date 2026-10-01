@@ -1,0 +1,12 @@
+.git
+.github
+venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+epicerIntApp/db.sqlite3
+docs
+*.md
+MCD_EpicerINT.png
+.env

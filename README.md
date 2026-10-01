@@ -1,3 +1,31 @@
+# Epicer'INT
+
+Application web Django pour la gestion des distributions alimentaires d'Épicer'INT.
+
+## Démarrage avec Docker
+
+Prérequis : [Docker](https://docs.docker.com/get-docker/) et Docker Compose.
+
+```bash
+docker compose up --build
+```
+
+L'application est ensuite accessible sur [http://localhost:8000](http://localhost:8000).
+
+Les migrations sont appliquées automatiquement au démarrage. Pour créer un compte administrateur :
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+Pour arrêter les services :
+
+```bash
+docker compose down
+```
+
+---
+
 # Cahier des charges - Epicer'INT
 
 ## 1. Présentation du projet
