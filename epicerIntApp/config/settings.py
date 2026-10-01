@@ -29,7 +29,11 @@ SECRET_KEY = 'django-insecure-br&s!l2f94d^mpx7o+@vg+st*f_oc83ls357h*_2f8umo&31k2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if host.strip()
+]
 
 
 # Application definition
@@ -83,14 +87,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        "OPTIONS": {
-            "service": "my_service",
-        },
+if os.environ.get("POSTGRES_HOST"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB", "epicerint"),
+            "USER": os.environ.get("POSTGRES_USER", "epicerint"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "epicerint"),
+            "HOST": os.environ["POSTGRES_HOST"],
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "OPTIONS": {
+                "service": "my_service",
+            },
+        }
+    }
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
