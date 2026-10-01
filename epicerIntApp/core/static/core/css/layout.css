@@ -46,7 +46,14 @@
   .site-nav {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 1rem;
+  }
+
+  .site-nav form {
+    display: flex;
+    align-items: center;
+    margin: 0;
   }
   
   .site-nav a {
@@ -56,6 +63,13 @@
   
   .site-nav a:hover {
     text-decoration: underline;
+  }
+
+  .site-nav button {
+    padding: 0;
+    background: none;
+    color: white;
+    font: inherit;
   }
   
   .hero h1 {
@@ -70,33 +84,46 @@
     color: var(--vert-clair);
   }
 
-  .nav-toggle {
-    display: none;
-    background: transparent;
-    color: white;
-    border: 1px solid white;
-    padding: 0.4rem 0.75rem;
-    cursor: pointer;
+  .product-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
   }
-  .site-nav button {
-    background: none;
-    border: none;
+
+  .product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    border-top: 1px solid #c9c3b6;
+  }
+
+  .product-item h2 { margin: 0; font-size: 1.2rem; }
+  .product-item p { margin: 0.35rem 0; }
+  .product-item form { display: flex; align-items: center; gap: 0.5rem; }
+  .product-item input, .cart-table input { width: 5rem; padding: 0.45rem; }
+  button, .button-link {
+    display: inline-block;
+    padding: 0.55rem 0.8rem;
+    border: 0;
+    background: var(--vert);
     color: white;
     font: inherit;
+    text-decoration: none;
     cursor: pointer;
-    padding: 0;
   }
+  .availability--in-stock { color: var(--vert); }
+  .message { padding: 0.75rem; background: white; }
+  .cart-table { width: 100%; border-collapse: collapse; }
+  .cart-table th, .cart-table td { padding: 0.75rem; border-bottom: 1px solid #c9c3b6; text-align: left; }
   
   @media (max-width: 700px) {
-    .nav-toggle {
-      display: inline-block;
-    }
-    .site-nav {
-      display: none;
-      width: 100%;
+    .site-header__inner {
       flex-direction: column;
+      align-items: flex-start;
     }
-    .site-nav.is-open {
-      display: flex;
-    }
+    .product-item { align-items: flex-start; flex-direction: column; }
+    .product-item form { flex-wrap: wrap; }
+    .cart-table { font-size: 0.9rem; }
   }

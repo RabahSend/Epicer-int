@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Adhérer — Épicer'INT{% endblock %}
+
+{% block content %}
+  <h1>Créer un compte</h1>
+  <p>La création du compte ne valide pas la cotisation. L'association confirmera votre statut de membre après votre adhésion.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Créer mon compte</button>
+  </form>
+{% endblock %}
