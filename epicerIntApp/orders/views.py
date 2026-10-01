@@ -3,10 +3,16 @@ from functools import wraps
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 
 from catalog.models import Product
 
 
+@login_required
+def orders_page(request):
+    return render(request, "orders/orders.html")
+  
+  
 def member_required(view_func):
 	@wraps(view_func)
 	def wrapped(request, *args, **kwargs):
