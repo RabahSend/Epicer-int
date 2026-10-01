@@ -3,7 +3,7 @@
 ## Informations sur la séance
 
 - **Date :** 22 septembre 2026
-- **Format :** réunion en visioconférence en dehors des heures de cours
+- **Format :** réunion en visioconférence en dehors des heures de cours (20 h 00 - 22 h 00)
 - **Présents :** Adel et Rabah
 
 ## Objectifs de la séance
