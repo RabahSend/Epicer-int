@@ -1,4 +1,4 @@
-# Séance 3: Organisation du projet et mise en place de la CI/CD
+# Séance 4: Organisation du projet et mise en place de la CI/CD
 
 ## Objectifs de la séance
 
