@@ -1,60 +1,62 @@
-# Séance 4: Organisation du projet et mise en place de la CI/CD
+# Séance 4 : Installation de l’environnement et prise en main de Git
+
+## Informations sur la séance
+
+- **Date :** 22 septembre 2026
+- **Format :** réunion en visioconférence en dehors des heures de cours
+- **Présents :** Adel et Rabah
 
 ## Objectifs de la séance
 
-Cette séance avait pour objectif de structurer le développement du projet Épicer’INT, d’organiser les différentes fonctionnalités à réaliser et de mettre en place les premiers éléments techniques nécessaires au développement.
+Cette réunion avait pour objectif d’aider Adel à préparer son environnement de développement, de lui expliquer le fonctionnement de Git et de commencer le travail sur les premières issues.
 
-## Organisation du projet
+## Prise en main de Git
 
-Un **GitHub Project** a été mis en place afin de centraliser et de suivre les différentes tâches du projet.
+Rabah a expliqué à Adel les principales commandes et le fonctionnement général de Git.
 
-Les principales fonctionnalités identifiées dans le cahier des charges ont été créées sous forme d’issues :
+Ils ont notamment vu comment :
 
-- Gestion des utilisateurs et authentification
-- Gestion des produits et des stocks
-- Gestion des commandes et des paiements
-- Gestion des distributions et de la récupération des commandes
-- Système de notifications
-- Dashboard administrateur et statistiques
+- récupérer le projet sur l’ordinateur ;
+- consulter les fichiers modifiés ;
+- créer et utiliser une branche ;
+- ajouter des fichiers à un commit ;
+- enregistrer les modifications ;
+- envoyer une branche sur GitHub ;
+- récupérer les dernières modifications du dépôt ;
+- créer et fusionner une Pull Request.
 
-Les issues ont été organisées dans le backlog du projet. Nous avons également mis en place l’utilisation des différents statuts (`Backlog`, `Ready`, `In progress`, `In review`, `Done`) afin de suivre leur avancement.
+Ces explications ont permis à Adel de mieux comprendre le workflow défini pendant la séance précédente.
 
-Des **itérations** ont également été configurées afin de déterminer les tâches à réaliser au cours des différentes périodes de développement.
+## Installation de l’environnement
 
-## Estimation et répartition du travail
+Rabah a accompagné Adel pendant l’installation et la configuration de l’environnement local.
 
-Une première estimation du temps nécessaire à la réalisation de chaque issue a été effectuée afin d’évaluer la charge de travail et de mieux organiser les prochaines séances.
+Ils ont préparé l’environnement virtuel Python, installé les dépendances du projet et vérifié le lancement de l’application Django.
 
-Les différentes issues ont ensuite été réparties entre les membres du groupe afin que chacun dispose de responsabilités clairement identifiées.
+La configuration de PostgreSQL et de sa connexion avec Django a également été examinée. Plusieurs erreurs de connexion ont nécessité de vérifier le pilote `psycopg`, le service PostgreSQL et le fichier de configuration utilisé par le projet.
 
-Cette répartition pourra évoluer au cours du projet en fonction de l’avancement, des dépendances entre les fonctionnalités et des difficultés rencontrées pendant le développement.
+## Présentation de l’architecture
 
-## Mise en place de la CI/CD
+Rabah a présenté à Adel l’organisation du projet par domaine métier.
 
-Une pipeline **CI/CD** a été mise en place afin d’automatiser les vérifications nécessaires au cours du développement.
+Le projet est divisé en plusieurs applications :
 
-Une issue spécifique a été créée dans le GitHub Project pour suivre cette tâche. Le développement a été réalisé sur une branche associée à cette issue.
+- `users` pour les utilisateurs ;
+- `catalog` pour les produits ;
+- `orders` pour les commandes et les paiements ;
+- `notifications` pour les notifications ;
+- `core` pour les éléments communs du site.
 
-La pipeline permet d’exécuter automatiquement les premières vérifications du projet et constitue une base sur laquelle pourront être ajoutés progressivement les tests et autres contrôles de qualité.
+Les premiers modèles de données concernant les utilisateurs, les produits, les commandes, les paiements, les distributions et les notifications avaient été ajoutés au projet.
 
-## Organisation du workflow Git
+## Travail sur les premières issues
 
-Une convention de travail a été définie afin de relier les différents éléments du développement.
+Adel et Rabah ont commencé à travailler sur les issues qui leur avaient été attribuées.
 
-Chaque tâche de développement peut être associée à une issue GitHub. Une branche dédiée est ensuite créée pour réaliser les modifications correspondantes. Les changements sont enregistrés à travers des commits puis intégrés dans `main` à l’aide d’une Pull Request liée à l’issue concernée.
+Le layout général du site et une première page consacrée aux produits ont été ajoutés. Adel a également fusionné la Pull Request liée à la création du layout général.
 
-Cette organisation permet de conserver une meilleure traçabilité entre les tâches prévues et les modifications apportées au code.
-
-## Cahier de laboratoire
-
-Un cahier de laboratoire a été ajouté directement au dépôt GitHub dans le dossier :
-
-`docs/cahier-de-labo/`
-
-Il permettra de conserver une trace du travail effectué à chaque séance, des décisions prises, des difficultés rencontrées et de l’évolution du projet.
+Cette première interface comprend une page d’accueil, un menu de navigation et une mise en page commune aux différentes pages du site.
 
 ## Prochaines étapes
 
-Les prochaines séances seront consacrées au développement progressif des fonctionnalités définies dans le backlog.
-
-Les issues seront intégrées aux différentes itérations en fonction de leur priorité, de leur estimation et de leur répartition entre les membres du groupe.
+Les prochaines étapes seront de poursuivre l’authentification, de préparer la page des commandes et de continuer à développer chaque fonctionnalité sur une branche dédiée.
