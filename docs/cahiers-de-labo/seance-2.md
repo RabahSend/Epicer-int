@@ -3,7 +3,7 @@
 ## Informations sur la séance
 
 - **Date :** 10 septembre 2026
-- **Horaire :** 10 h 00 – 13 h 15
+- **Horaire :** 10 h 00 - 13 h 15
 - **Lieu :** C206
 - **Présents :** Adel et Rabah
 
