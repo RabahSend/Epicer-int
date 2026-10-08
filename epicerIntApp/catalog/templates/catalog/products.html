@@ -12,7 +12,7 @@
       <article class="product-item">
         <div>
           <h2>{{ product.name }}</h2>
-          <p>{{ product.get_category_display }} · {{ product.price }} €</p>
+          <p>{{ product.category }} · {{ product.price }} €</p>
           {% if product.description %}<p>{{ product.description }}</p>{% endif %}
           {% if product.stock > 0 %}
             <p class="availability availability--in-stock">Disponible · {{ product.stock }} en stock</p>
