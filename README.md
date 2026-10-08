@@ -18,6 +18,12 @@ Les migrations sont appliquées automatiquement au démarrage. Pour créer un co
 docker compose exec web python manage.py createsuperuser
 ```
 
+Pour générer le diagramme des modèles de données du projet :
+
+```bash
+docker compose exec web python manage.py graph_models users catalog orders notifications core -o models.png
+```
+
 Pour arrêter les services :
 
 ```bash
