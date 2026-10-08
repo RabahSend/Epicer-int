@@ -1,14 +1,15 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from catalog.models import Product
+from catalog.models import Category, Product
 from users.models import User
 
 
 class CartAccessTests(TestCase):
 	def setUp(self):
+		category = Category.objects.create(name="Féculents")
 		self.product = Product.objects.create(
-			name="Pâtes", category=Product.Category.STARCHES, price="1.50", stock=3
+			name="Pâtes", category=category, price="1.50", stock=3
 		)
 		self.add_url = reverse("add_to_cart", args=[self.product.pk])
 
