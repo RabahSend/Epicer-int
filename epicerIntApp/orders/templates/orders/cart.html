@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Mon panier — Épicer'INT{% endblock %}
+
+{% block content %}
+  <h1>Mon panier</h1>
+  {% if items %}
+    <form method="post">
+      {% csrf_token %}
+      <table class="cart-table">
+        <thead><tr><th>Produit</th><th>Prix unitaire</th><th>Quantité</th><th>Sous-total</th></tr></thead>
+        <tbody>
+          {% for item in items %}
+            <tr>
+              <td>{{ item.product.name }}</td>
+              <td>{{ item.product.price }} €</td>
+              <td><input aria-label="Quantité de {{ item.product.name }}" type="number" name="quantity_{{ item.product.pk }}" min="0" max="{{ item.product.stock }}" value="{{ item.quantity }}"></td>
+              <td>{{ item.line_total }} €</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p>Total indicatif : {{ total }} €</p>
+      <button type="submit">Mettre à jour le panier</button>
+    </form>
+    <p>Le paiement et la validation de commande ne sont pas encore disponibles.</p>
+  {% else %}
+    <p>Votre panier est vide.</p>
+  {% endif %}
+  <a href="{% url 'products' %}">Retour aux produits</a>
+{% endblock %}

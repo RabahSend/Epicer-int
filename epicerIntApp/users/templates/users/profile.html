@@ -5,4 +5,11 @@
 {% block content %}
   <h1>Mon compte</h1>
   <p>{{ user.email }}</p>
+  {% if user.is_member %}
+    <p>Votre cotisation est active. Vous pouvez commander les produits disponibles.</p>
+    <a href="{% url 'cart' %}">Voir mon panier</a>
+  {% else %}
+    <p>Votre compte est créé, mais votre cotisation n'est pas encore validée.</p>
+    <p>Contactez l'association pour cotiser. L'accès au panier sera ouvert après validation.</p>
+  {% endif %}
 {% endblock %}
