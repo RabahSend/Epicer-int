@@ -17,6 +17,67 @@ L'application est accessible sur [http://localhost:8000](http://localhost:8000).
 ## Comptes par défaut
 
 Un compte administrateur est créé automatiquement au démarrage de Docker :
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+Pour générer le diagramme des modèles de données du projet :
+
+```bash
+docker compose exec web python manage.py graph_models users catalog orders notifications core -o models.png
+```
+
+Pour arrêter les services :
+
+```bash
+docker compose down
+```
+
+## Règles d'accès
+
+- Les visiteurs peuvent consulter les produits actifs et leur disponibilité.
+- La création d'un compte ne valide pas une cotisation et ne donne pas accès au panier.
+- Après cotisation auprès de l'association, un administrateur active le champ « cotisation active » du compte dans l'administration Django. Seuls les membres actifs peuvent ajouter des produits au panier, dans la limite du stock.
+- Le panier sert actuellement à préparer une sélection. Le paiement en ligne et la validation d'une commande ne sont pas encore disponibles.
+
+---
+
+# Cahier des charges - Epicer'INT
+
+## 1. Présentation du projet
+
+Le projet consiste à développer un site web pour **Epicer'INT** permettant de faciliter la gestion des produits, des cotisants, des commandes et des distributions.
+
+Epicer'INT organise régulièrement des distributions alimentaires à destination des étudiants de **Télécom SudParis** et **IMT-BS**.
+
+Ces distributions proposent différents types de produits, notamment :
+
+* des féculents ;
+* des fruits et légumes frais ;
+* des conserves ;
+* des produits sucrés.
+
+Actuellement, certaines informations, notamment celles concernant les cotisants, sont gérées à l'aide d'une feuille Excel.
+
+L'objectif du projet est de centraliser et de simplifier une partie de cette gestion au sein d'une application web.
+
+---
+
+## 2. Objectifs
+
+Le site devra permettre :
+
+* la gestion des produits et des stocks ;
+* la création et la gestion des comptes des cotisants ;
+* l'authentification des utilisateurs ;
+* l'achat et le paiement des produits directement depuis le site ;
+* la gestion de la récupération des commandes ;
+* l'envoi de notifications aux utilisateurs ;
+* éventuellement, la mise à disposition d'un tableau de bord pour les administrateurs.
+
+---
+
+## 3. Fonctionnalités
 
 - **E-mail :** `admin@epicerint.local`
 - **Mot de passe :** `projetinfo1A`
