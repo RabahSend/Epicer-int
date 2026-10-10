@@ -3,3 +3,4 @@ django-extensions==4.1
 psycopg==3.3.6
 pydotplus==2.0.2
 pyparsing<3
+sqlparse==0.6.0

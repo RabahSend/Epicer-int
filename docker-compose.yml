@@ -26,6 +26,8 @@ services:
       POSTGRES_USER: epicerint
       POSTGRES_PASSWORD: epicerint
       DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@epicerint.local}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-projetinfo1A}
     depends_on:
       db:
         condition: service_healthy
