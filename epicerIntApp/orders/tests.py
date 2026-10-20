@@ -4,6 +4,7 @@ from django.utils import timezone
 from catalog.models import Category, Product
 from orders.models import Distribution, Order
 from users.models import User
+from decimal import Decimal
 
 
 class CartAccessTests(TestCase):
@@ -77,7 +78,29 @@ class PlaceOrderTests(TestCase):
 		item = order.items.get()
 		self.assertEqual(item.product, self.product)
 		self.assertEqual(item.quantity, 2)
-		self.assertEqual(item.unit_price, self.product.price)
+		self.assertEqual(item.unit_price, Decimal("1.50"))
 		self.assertEqual(self.client.session.get("cart", {}), {})
 		self.product.refresh_from_db()
 		self.assertEqual(self.product.stock, 3)
+
+	def test_member_cannot_place_order_without_active_distribution(self):
+		self.distribution.is_active = False
+		self.distribution.save()
+
+		response = self.client.post(reverse("place_order"))
+
+		self.assertRedirects(response, reverse("cart"))
+		self.assertEqual(Order.objects.count(), 0)
+		self.assertEqual(self.client.session["cart"], {str(self.product.pk): 2})
+
+	def test_member_cannot_place_order_with_empty_cart(self):
+		session = self.client.session
+		session["cart"] = {}
+		session.save()
+
+		response = self.client.post(reverse("place_order"))
+
+		self.assertRedirects(response, reverse("cart"))
+		self.assertEqual(Order.objects.count(), 0)
+
+	

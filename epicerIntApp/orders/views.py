@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from orders.services import create_order_from_cart
 
 from catalog.models import Product
 
@@ -87,3 +88,16 @@ def add_to_cart(request, product_id):
 	request.session["cart"] = cart
 	messages.success(request, f"{product.name} a été ajouté au panier.")
 	return redirect("cart")
+
+@member_required
+@require_POST
+def place_order(request):
+	cart = request.session.get("cart", {})
+	order = create_order_from_cart(request.user, cart)
+	if order is None:
+		messages.error(request, "Aucune distribution n'est ouverte pour le moment.")
+		return redirect("cart")
+
+	request.session["cart"] = {}
+	messages.success(request, "Votre commande a été enregistrée.")
+	return redirect("orders")
