@@ -103,4 +103,26 @@ class PlaceOrderTests(TestCase):
 		self.assertRedirects(response, reverse("cart"))
 		self.assertEqual(Order.objects.count(), 0)
 
-	
+	def test_cart_page_offers_order_validation(self):
+		response = self.client.get(reverse("cart"))
+
+		self.assertContains(response, "Valider la commande")
+
+	def test_orders_page_shows_only_the_members_orders(self):
+		self.client.post(reverse("place_order"))
+
+		response = self.client.get(reverse("orders"))
+
+		self.assertContains(response, "Pâtes x 2")
+		self.assertContains(response, "En attente de paiement")
+
+		other = User.objects.create_user(
+			email="other@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.client.force_login(other)
+		response = self.client.get(reverse("orders"))
+
+		self.assertNotContains(response, "Pâtes")
+		self.assertContains(response, "Vous n'avez pas encore de commande.")

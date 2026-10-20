@@ -5,13 +5,18 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from orders.services import create_order_from_cart
-
+from orders.models import Order
 from catalog.models import Product
 
 
 @login_required
 def orders_page(request):
-    return render(request, "orders/orders.html")
+    orders = (
+        Order.objects.filter(user=request.user)
+        .select_related("distribution")
+        .prefetch_related("items__product")
+    )
+    return render(request, "orders/orders.html", {"orders": orders})
   
   
 def member_required(view_func):
