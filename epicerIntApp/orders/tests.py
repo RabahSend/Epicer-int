@@ -66,6 +66,12 @@ class PlaceOrderTests(TestCase):
 			starts_at=timezone.now(),
 			location="C206",
 		)
+		self.distribution.is_active = True
+		self.distribution.save()
+		self.client.force_login(self.user)
+		session = self.client.session
+		session["cart"] = {str(self.product.pk): 2}
+		session.save()
 
 	def make_order(self, status):
 		return Order.objects.create(
