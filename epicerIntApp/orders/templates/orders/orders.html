@@ -5,11 +5,22 @@
 {% endblock %}
 
 {% block content %}
-  <section class="hero">
-    <p class="hero__eyebrow">Mes commandes</p>
-
-    <h1>Commandes</h1>
-
-    <p>Retrouvez vos commandes et passez une nouvelle commande.</p>
-  </section>
+  {% if orders %}
+    <section aria-label="Mes commandes">
+      {% for order in orders %}
+        <article>
+          <h2>Commande n°{{ order.pk }}</h2>
+          <p>{{ order.get_status_display }} · {{ order.distribution }}</p>
+          <p>{{ order.created_at|date:"d/m/Y H:i" }}</p>
+          <ul>
+            {% for item in order.items.all %}
+              <li>{{ item.product.name }} x {{ item.quantity }} - {{ item.unit_price }} €</li>
+            {% endfor %}
+          </ul>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <p>Vous n'avez pas encore de commande.</p>
+  {% endif %}
 {% endblock %}
