@@ -126,3 +126,121 @@ class PlaceOrderTests(TestCase):
 
 		self.assertNotContains(response, "Pâtes")
 		self.assertContains(response, "Vous n'avez pas encore de commande.")
+
+
+class DistributionOrdersTests(TestCase):
+	def setUp(self):
+		self.admin = User.objects.create_user(
+			email="admin@example.com",
+			password="secure-test-password",
+			is_staff=True,
+		)
+		self.member = User.objects.create_user(
+			email="member@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.picked_up_member = User.objects.create_user(
+			email="picked-up@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.ready_member = User.objects.create_user(
+			email="ready@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C206",
+		)
+		self.other_distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C207",
+		)
+		self.pending = Order.objects.create(
+			user=self.member,
+			distribution=self.distribution,
+			status=Order.Status.PENDING,
+		)
+		self.ready = Order.objects.create(
+			user=self.ready_member,
+			distribution=self.distribution,
+			status=Order.Status.READY,
+		)
+		self.picked_up_at = timezone.now()
+		self.picked_up = Order.objects.create(
+			user=self.picked_up_member,
+			distribution=self.distribution,
+			status=Order.Status.PICKED_UP,
+			picked_up_at=self.picked_up_at,
+		)
+		Order.objects.create(
+			user=self.member,
+			distribution=self.distribution,
+			status=Order.Status.CANCELLED,
+		)
+		Order.objects.create(
+			user=self.member,
+			distribution=self.other_distribution,
+			status=Order.Status.PAID,
+		)
+		self.orders_url = reverse("distribution_orders", args=[self.distribution.pk])
+
+	def test_visitor_is_sent_to_login(self):
+		response = self.client.get(self.orders_url)
+
+		self.assertRedirects(response, f"{reverse('login')}?next={self.orders_url}")
+
+	def test_member_cannot_consult_distribution_orders(self):
+		self.client.force_login(self.member)
+
+		response = self.client.get(self.orders_url, follow=True)
+
+		self.assertRedirects(response, reverse("home"))
+		self.assertContains(response, "Cette consultation est réservée aux administrateurs.")
+		self.assertNotContains(response, reverse("distributions"))
+
+	def test_admin_chooses_a_distribution(self):
+		self.client.force_login(self.admin)
+
+		response = self.client.get(reverse("distributions"))
+
+		self.assertContains(response, "C206")
+		self.assertContains(response, self.orders_url)
+		self.assertContains(response, reverse("distributions"))
+
+	def test_admin_sees_not_picked_up_orders_by_default(self):
+		self.client.force_login(self.admin)
+		self.pending.refresh_from_db()
+
+		response = self.client.get(self.orders_url)
+
+		self.assertContains(response, "member@example.com")
+		self.assertContains(response, "En attente de paiement")
+		self.assertContains(response, "ready@example.com")
+		self.assertContains(response, "Prête à récupérer")
+		self.assertContains(
+			response,
+			timezone.localtime(self.pending.created_at).strftime("%d/%m/%Y %H:%M"),
+		)
+		self.assertNotContains(response, "picked-up@example.com")
+		self.assertNotContains(response, "Annulée")
+		self.assertNotContains(response, "Payée")
+
+	def test_admin_filters_picked_up_orders(self):
+		self.client.force_login(self.admin)
+
+		response = self.client.get(self.orders_url, {"filtre": "recuperees"})
+
+		self.assertContains(response, "picked-up@example.com")
+		self.assertContains(response, "Récupérée")
+		self.assertContains(
+			response,
+			timezone.localtime(self.picked_up.picked_up_at).strftime("%d/%m/%Y %H:%M"),
+		)
+		self.assertNotContains(response, "member@example.com")
+		self.assertNotContains(response, "ready@example.com")
+		self.assertNotContains(response, "Annulée")
+		self.assertNotContains(response, "Payée")
+		self.assertNotContains(response, "En attente de paiement")
