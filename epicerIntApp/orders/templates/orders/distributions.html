@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Distributions{% endblock %}
+
+{% block content %}
+  <h1>Distributions</h1>
+  <p><a class="button-link" href="{% url 'distribution_create' %}">Nouvelle distribution</a></p>
+  {% if distributions %}
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Début</th>
+          <th>Fin</th>
+          <th>Lieu</th>
+          <th>Statut</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for distribution in distributions %}
+          <tr>
+            <td>{{ distribution.starts_at|date:"d/m/Y H:i" }}</td>
+            <td>{% if distribution.ends_at %}{{ distribution.ends_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+            <td>{{ distribution.location|default:"—" }}</td>
+            <td>{% if distribution.is_active %}Ouverte{% else %}Fermée{% endif %}</td>
+            <td>
+              <a href="{% url 'distribution_edit' distribution.pk %}">Modifier</a>
+              {% if distribution.is_active %}
+                <form method="post" action="{% url 'distribution_close' distribution.pk %}">
+                  {% csrf_token %}
+                  <button type="submit">Fermer</button>
+                </form>
+              {% else %}
+                <form method="post" action="{% url 'distribution_open' distribution.pk %}">
+                  {% csrf_token %}
+                  <button type="submit">Ouvrir</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Aucune distribution n'est enregistrée.</p>
+  {% endif %}
+{% endblock %}

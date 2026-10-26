@@ -1,11 +1,13 @@
 from functools import wraps
 
 from django.contrib import messages
+from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from orders.services import create_order_from_cart
-from orders.models import Order
+from orders.forms import DistributionForm
+from orders.services import close_distribution, create_order_from_cart, open_distribution
+from orders.models import Distribution, Order
 from catalog.models import Product
 
 
@@ -106,3 +108,74 @@ def place_order(request):
 	request.session["cart"] = {}
 	messages.success(request, "Votre commande a été enregistrée.")
 	return redirect("orders")
+
+
+def admin_required(view_func):
+	@wraps(view_func)
+	def wrapped(request, *args, **kwargs):
+		if not request.user.is_authenticated:
+			return redirect_to_login(request.get_full_path())
+		if not request.user.is_staff:
+			messages.error(request, "Cette page est réservée aux administrateurs.")
+			return redirect("home")
+		return view_func(request, *args, **kwargs)
+
+	return wrapped
+
+
+@admin_required
+def distributions_page(request):
+	return render(
+		request,
+		"orders/distributions.html",
+		{"distributions": Distribution.objects.all()},
+	)
+
+
+@admin_required
+def distribution_create(request):
+	form = DistributionForm(request.POST or None)
+	if request.method == "POST" and form.is_valid():
+		distribution = form.save(commit=False)
+		distribution.is_active = False
+		distribution.save()
+		messages.success(request, "La distribution a été créée.")
+		return redirect("distributions")
+	return render(
+		request,
+		"orders/distribution_form.html",
+		{"form": form, "title": "Nouvelle distribution"},
+	)
+
+
+@admin_required
+def distribution_edit(request, distribution_id):
+	distribution = get_object_or_404(Distribution, pk=distribution_id)
+	form = DistributionForm(request.POST or None, instance=distribution)
+	if request.method == "POST" and form.is_valid():
+		form.save()
+		messages.success(request, "La distribution a été modifiée.")
+		return redirect("distributions")
+	return render(
+		request,
+		"orders/distribution_form.html",
+		{"form": form, "title": "Modifier la distribution"},
+	)
+
+
+@admin_required
+@require_POST
+def distribution_open(request, distribution_id):
+	distribution = get_object_or_404(Distribution, pk=distribution_id)
+	open_distribution(distribution)
+	messages.success(request, "La distribution est ouverte.")
+	return redirect("distributions")
+
+
+@admin_required
+@require_POST
+def distribution_close(request, distribution_id):
+	distribution = get_object_or_404(Distribution, pk=distribution_id)
+	close_distribution(distribution)
+	messages.success(request, "La distribution est fermée.")
+	return redirect("distributions")

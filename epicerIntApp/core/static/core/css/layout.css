@@ -117,6 +117,8 @@
   .message { padding: 0.75rem; background: white; }
   .cart-table { width: 100%; border-collapse: collapse; }
   .cart-table th, .cart-table td { padding: 0.75rem; border-bottom: 1px solid #c9c3b6; text-align: left; }
+  .cart-table td form { display: inline; margin-left: 0.75rem; }
+  form p input { padding: 0.45rem; font: inherit; max-width: 100%; }
   
   @media (max-width: 700px) {
     .site-header__inner {
