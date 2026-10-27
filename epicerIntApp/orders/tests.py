@@ -81,7 +81,7 @@ class PlaceOrderTests(TestCase):
 		self.assertEqual(item.unit_price, Decimal("1.50"))
 		self.assertEqual(self.client.session.get("cart", {}), {})
 		self.product.refresh_from_db()
-		self.assertEqual(self.product.stock, 3)
+		self.assertEqual(self.product.stock, 1)
 
 	def test_member_cannot_place_order_without_active_distribution(self):
 		self.distribution.is_active = False
@@ -126,3 +126,37 @@ class PlaceOrderTests(TestCase):
 
 		self.assertNotContains(response, "Pâtes")
 		self.assertContains(response, "Vous n'avez pas encore de commande.")
+
+	def test_member_cannot_place_order_when_stock_is_insufficient(self):
+		session = self.client.session
+		session["cart"] = {str(self.product.pk): 4}
+		session.save()
+
+		response = self.client.post(reverse("place_order"))
+
+		self.assertRedirects(response, reverse("cart"), fetch_redirect_response=False)
+		self.assertEqual(Order.objects.count(), 0)
+		self.product.refresh_from_db()
+		self.assertEqual(self.product.stock, 3)
+		self.assertEqual(self.client.session["cart"], {str(self.product.pk): 4})
+
+		response = self.client.get(reverse("cart"))
+
+		self.assertContains(response, "La quantité demandée dépasse le stock disponible.")
+
+	def test_ordering_the_whole_stock_keeps_the_product_visible_as_unavailable(self):
+		session = self.client.session
+		session["cart"] = {str(self.product.pk): 3}
+		session.save()
+
+		response = self.client.post(reverse("place_order"))
+
+		self.assertRedirects(response, reverse("orders"))
+		self.product.refresh_from_db()
+		self.assertEqual(self.product.stock, 0)
+
+		response = self.client.get(reverse("products"))
+
+		self.assertContains(response, "Pâtes")
+		self.assertContains(response, "Indisponible")
+		self.assertNotContains(response, "Ajouter au panier")

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from orders.services import create_order_from_cart
-from orders.models import Order
+from orders.models import Distribution, Order
 from catalog.models import Product
 
 
@@ -100,7 +100,11 @@ def place_order(request):
 	cart = request.session.get("cart", {})
 	order = create_order_from_cart(request.user, cart)
 	if order is None:
-		messages.error(request, "Aucune distribution n'est ouverte pour le moment.")
+		distribution_open = Distribution.objects.filter(is_active=True).exists()
+		if cart and distribution_open:
+			messages.error(request, "La quantité demandée dépasse le stock disponible.")
+		else:
+			messages.error(request, "Aucune distribution n'est ouverte pour le moment.")
 		return redirect("cart")
 
 	request.session["cart"] = {}

@@ -9,15 +9,15 @@ def create_order_from_cart(user, cart):
 	if distribution is None or not cart:
 		return None
 
-	lines = []
-	for product_id, quantity in cart.items():
-		product = Product.objects.get(pk=int(product_id), is_active=True)
-		quantity = int(quantity)
-		if quantity > product.stock:
-			return None
-		lines.append((product, quantity))
-
 	with transaction.atomic():
+		lines = []
+		for product_id, quantity in cart.items():
+			product = Product.objects.select_for_update().get(pk=int(product_id), is_active=True)
+			quantity = int(quantity)
+			if quantity > product.stock:
+				return None
+			lines.append((product, quantity))
+
 		order = Order.objects.create(user=user, distribution=distribution)
 		for product, quantity in lines:
 			OrderItem.objects.create(
@@ -26,6 +26,8 @@ def create_order_from_cart(user, cart):
 				quantity=quantity,
 				unit_price=product.price,
 			)
+			product.stock -= quantity
+			product.save(update_fields=["stock"])
 	return order
 
 
