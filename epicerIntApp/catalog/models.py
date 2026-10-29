@@ -25,6 +25,7 @@ class Product(models.Model):
         related_name="products",
     )
     description = models.TextField(blank=True)
+    image = models.ImageField(upload_to="products/", blank=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)

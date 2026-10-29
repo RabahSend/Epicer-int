@@ -1,4 +1,5 @@
 Django==6.1.1
+Pillow>=10.0.0 #pour permettre à Django de lire les images
 django-extensions==4.1
 psycopg==3.3.6
 pydotplus==2.0.2
