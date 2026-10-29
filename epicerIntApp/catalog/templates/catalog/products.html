@@ -10,6 +10,14 @@
   <section class="product-list" aria-label="Catalogue des produits">
     {% for product in products %}
       <article class="product-item">
+        {% if product.image %}
+          <img
+            class="product-item__image"
+            src="{{ product.image.url }}"
+            alt="{{ product.name }}"
+            loading="lazy"
+          >
+        {% endif %}
         <div>
           <h2>{{ product.name }}</h2>
           <p>{{ product.category }} · {{ product.price }} €</p>
