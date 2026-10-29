@@ -6,6 +6,11 @@ from orders.models import Distribution, Order
 from users.models import User
 from decimal import Decimal
 
+from django.utils import timezone
+
+from orders.models import Distribution, Order
+from orders.services import mark_order_as_picked_up
+
 
 class CartAccessTests(TestCase):
 	def setUp(self):
@@ -45,7 +50,7 @@ class CartAccessTests(TestCase):
 
 		self.assertRedirects(response, reverse("products"))
 		self.assertEqual(self.client.session["cart"], {str(self.product.pk): 2})
-
+    
 class PlaceOrderTests(TestCase):
 	def setUp(self):
 		category = Category.objects.create(name="Féculents")
@@ -60,13 +65,47 @@ class PlaceOrderTests(TestCase):
 		self.distribution = Distribution.objects.create(
 			starts_at=timezone.now(),
 			location="C206",
-			is_active=True,
 		)
+		self.distribution.is_active = True
+		self.distribution.save()
 		self.client.force_login(self.user)
 		session = self.client.session
 		session["cart"] = {str(self.product.pk): 2}
 		session.save()
 
+	def make_order(self, status):
+		return Order.objects.create(
+			user=self.user,
+			distribution=self.distribution,
+			status=status,
+		)
+
+	def test_paid_order_is_marked_picked_up(self):
+		order = self.make_order(Order.Status.PAID)
+
+		self.assertTrue(mark_order_as_picked_up(order))
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PICKED_UP)
+		self.assertIsNotNone(order.picked_up_at)
+
+	def test_ready_order_is_marked_picked_up(self):
+		order = self.make_order(Order.Status.READY)
+
+		self.assertTrue(mark_order_as_picked_up(order))
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PICKED_UP)
+		self.assertIsNotNone(order.picked_up_at)
+
+	def test_pending_cancelled_and_picked_up_orders_are_refused(self):
+		for status in (Order.Status.PENDING, Order.Status.CANCELLED, Order.Status.PICKED_UP):
+			with self.subTest(status=status):
+				order = self.make_order(status)
+
+				self.assertFalse(mark_order_as_picked_up(order))
+				order.refresh_from_db()
+				self.assertEqual(order.status, status)
+				self.assertIsNone(order.picked_up_at)
+        
 	def test_member_places_order_from_cart(self):
 		response = self.client.post(reverse("place_order"))
 
@@ -126,7 +165,6 @@ class PlaceOrderTests(TestCase):
 
 		self.assertNotContains(response, "Pâtes")
 		self.assertContains(response, "Vous n'avez pas encore de commande.")
-
 
 class DistributionOrdersTests(TestCase):
 	def setUp(self):
