@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Distributions{% endblock %}
+
+{% block content %}
+  <h1>Distributions</h1>
+  {% if distributions %}
+    <ul>
+      {% for distribution in distributions %}
+        <li>
+          <a href="{% url 'distribution_orders' distribution.pk %}">
+            {{ distribution }}{% if distribution.location %} · {{ distribution.location }}{% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Aucune distribution n'est enregistrée.</p>
+  {% endif %}
+{% endblock %}

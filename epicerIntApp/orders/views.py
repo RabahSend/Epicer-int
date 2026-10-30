@@ -1,11 +1,13 @@
 from functools import wraps
 
 from django.contrib import messages
+from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from orders.selectors import NOT_PICKED_UP, PICKED_UP, orders_for_distribution
 from orders.services import create_order_from_cart
-from orders.models import Order
+from orders.models import Distribution, Order
 from catalog.models import Product
 
 
@@ -106,3 +108,42 @@ def place_order(request):
 	request.session["cart"] = {}
 	messages.success(request, "Votre commande a été enregistrée.")
 	return redirect("orders")
+
+
+def admin_required(view_func):
+	@wraps(view_func)
+	def wrapped(request, *args, **kwargs):
+		if not request.user.is_authenticated:
+			return redirect_to_login(request.get_full_path())
+		if not request.user.is_staff:
+			messages.error(request, "Cette consultation est réservée aux administrateurs.")
+			return redirect("home")
+		return view_func(request, *args, **kwargs)
+
+	return wrapped
+
+
+@admin_required
+def distributions_page(request):
+	distributions = Distribution.objects.all()
+	return render(request, "orders/distributions.html", {"distributions": distributions})
+
+
+@admin_required
+def distribution_orders_page(request, distribution_id):
+	distribution = get_object_or_404(Distribution, pk=distribution_id)
+	pickup_filter = request.GET.get("filtre", NOT_PICKED_UP)
+	if pickup_filter not in (NOT_PICKED_UP, PICKED_UP):
+		pickup_filter = NOT_PICKED_UP
+	orders = orders_for_distribution(distribution, pickup_filter)
+	return render(
+		request,
+		"orders/distribution_orders.html",
+		{
+			"distribution": distribution,
+			"orders": orders,
+			"filtre": pickup_filter,
+			"not_picked_up": NOT_PICKED_UP,
+			"picked_up": PICKED_UP,
+		},
+	)
