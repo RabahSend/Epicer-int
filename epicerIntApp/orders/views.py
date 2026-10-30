@@ -102,7 +102,11 @@ def place_order(request):
 	cart = request.session.get("cart", {})
 	order = create_order_from_cart(request.user, cart)
 	if order is None:
-		messages.error(request, "Aucune distribution n'est ouverte pour le moment.")
+		distribution_open = Distribution.objects.filter(is_active=True).exists()
+		if cart and distribution_open:
+			messages.error(request, "La quantité demandée dépasse le stock disponible.")
+		else:
+			messages.error(request, "Aucune distribution n'est ouverte pour le moment.")
 		return redirect("cart")
 
 	request.session["cart"] = {}
