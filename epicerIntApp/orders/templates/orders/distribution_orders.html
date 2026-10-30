@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Commandes · {{ distribution }}{% endblock %}
+
+{% block content %}
+  <h1>Commandes · {{ distribution }}{% if distribution.location %} · {{ distribution.location }}{% endif %}</h1>
+  <nav class="filter-nav" aria-label="Filtrer les commandes">
+    <a href="{% url 'distribution_orders' distribution.pk %}?filtre={{ not_picked_up }}" {% if filtre == not_picked_up %}aria-current="page"{% endif %}>Non récupérées</a>
+    <a href="{% url 'distribution_orders' distribution.pk %}?filtre={{ picked_up }}" {% if filtre == picked_up %}aria-current="page"{% endif %}>Récupérées</a>
+  </nav>
+  {% if orders %}
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Cotisant</th>
+          <th>Statut</th>
+          <th>Date de commande</th>
+          <th>Date de récupération</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+          <tr>
+            <td>{{ order.user.email }}</td>
+            <td>{{ order.get_status_display }}</td>
+            <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
+            <td>{% if order.picked_up_at %}{{ order.picked_up_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>Aucune commande dans cette liste.</p>
+  {% endif %}
+  <p><a href="{% url 'distributions' %}">Choisir une autre distribution</a></p>
+{% endblock %}

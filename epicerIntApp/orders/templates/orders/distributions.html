@@ -24,6 +24,7 @@
             <td>{{ distribution.location|default:"—" }}</td>
             <td>{% if distribution.is_active %}Ouverte{% else %}Fermée{% endif %}</td>
             <td>
+              <a href="{% url 'distribution_orders' distribution.pk %}">Commandes</a>
               <a href="{% url 'distribution_edit' distribution.pk %}">Modifier</a>
               {% if distribution.is_active %}
                 <form method="post" action="{% url 'distribution_close' distribution.pk %}">

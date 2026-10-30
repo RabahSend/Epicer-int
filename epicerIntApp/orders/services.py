@@ -1,7 +1,15 @@
+from django.utils import timezone
 from django.db import transaction
-
 from catalog.models import Product
 from orders.models import Distribution, Order, OrderItem
+
+def mark_order_as_picked_up(order):
+	if order.status not in (Order.Status.PAID, Order.Status.READY):
+		return False
+	order.status = Order.Status.PICKED_UP
+	order.picked_up_at = timezone.now()
+	order.save()
+	return True
 
 
 def open_distribution(distribution):

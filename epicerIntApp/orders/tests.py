@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from catalog.models import Category, Product
 from orders.models import Distribution, Order
-from orders.services import create_order_from_cart
+from orders.services import create_order_from_cart, mark_order_as_picked_up
 from users.models import User
 
 
@@ -48,7 +48,7 @@ class CartAccessTests(TestCase):
 
 		self.assertRedirects(response, reverse("products"))
 		self.assertEqual(self.client.session["cart"], {str(self.product.pk): 2})
-
+    
 class PlaceOrderTests(TestCase):
 	def setUp(self):
 		category = Category.objects.create(name="Féculents")
@@ -63,13 +63,47 @@ class PlaceOrderTests(TestCase):
 		self.distribution = Distribution.objects.create(
 			starts_at=timezone.now(),
 			location="C206",
-			is_active=True,
 		)
+		self.distribution.is_active = True
+		self.distribution.save()
 		self.client.force_login(self.user)
 		session = self.client.session
 		session["cart"] = {str(self.product.pk): 2}
 		session.save()
 
+	def make_order(self, status):
+		return Order.objects.create(
+			user=self.user,
+			distribution=self.distribution,
+			status=status,
+		)
+
+	def test_paid_order_is_marked_picked_up(self):
+		order = self.make_order(Order.Status.PAID)
+
+		self.assertTrue(mark_order_as_picked_up(order))
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PICKED_UP)
+		self.assertIsNotNone(order.picked_up_at)
+
+	def test_ready_order_is_marked_picked_up(self):
+		order = self.make_order(Order.Status.READY)
+
+		self.assertTrue(mark_order_as_picked_up(order))
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PICKED_UP)
+		self.assertIsNotNone(order.picked_up_at)
+
+	def test_pending_cancelled_and_picked_up_orders_are_refused(self):
+		for status in (Order.Status.PENDING, Order.Status.CANCELLED, Order.Status.PICKED_UP):
+			with self.subTest(status=status):
+				order = self.make_order(status)
+
+				self.assertFalse(mark_order_as_picked_up(order))
+				order.refresh_from_db()
+				self.assertEqual(order.status, status)
+				self.assertIsNone(order.picked_up_at)
+        
 	def test_member_places_order_from_cart(self):
 		response = self.client.post(reverse("place_order"))
 
@@ -301,3 +335,121 @@ class DistributionManagementTests(TestCase):
 			datetime(year, month, day, hour, minute),
 			timezone.get_current_timezone(),
 		)
+
+
+class DistributionOrdersTests(TestCase):
+	def setUp(self):
+		self.admin = User.objects.create_user(
+			email="admin@example.com",
+			password="secure-test-password",
+			is_staff=True,
+		)
+		self.member = User.objects.create_user(
+			email="member@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.picked_up_member = User.objects.create_user(
+			email="picked-up@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.ready_member = User.objects.create_user(
+			email="ready@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C206",
+		)
+		self.other_distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C207",
+		)
+		self.pending = Order.objects.create(
+			user=self.member,
+			distribution=self.distribution,
+			status=Order.Status.PENDING,
+		)
+		self.ready = Order.objects.create(
+			user=self.ready_member,
+			distribution=self.distribution,
+			status=Order.Status.READY,
+		)
+		self.picked_up_at = timezone.now()
+		self.picked_up = Order.objects.create(
+			user=self.picked_up_member,
+			distribution=self.distribution,
+			status=Order.Status.PICKED_UP,
+			picked_up_at=self.picked_up_at,
+		)
+		Order.objects.create(
+			user=self.member,
+			distribution=self.distribution,
+			status=Order.Status.CANCELLED,
+		)
+		Order.objects.create(
+			user=self.member,
+			distribution=self.other_distribution,
+			status=Order.Status.PAID,
+		)
+		self.orders_url = reverse("distribution_orders", args=[self.distribution.pk])
+
+	def test_visitor_is_sent_to_login(self):
+		response = self.client.get(self.orders_url)
+
+		self.assertRedirects(response, f"{reverse('login')}?next={self.orders_url}")
+
+	def test_member_cannot_consult_distribution_orders(self):
+		self.client.force_login(self.member)
+
+		response = self.client.get(self.orders_url, follow=True)
+
+		self.assertRedirects(response, reverse("home"))
+		self.assertContains(response, "Cette consultation est réservée aux administrateurs.")
+		self.assertNotContains(response, reverse("distributions"))
+
+	def test_admin_chooses_a_distribution(self):
+		self.client.force_login(self.admin)
+
+		response = self.client.get(reverse("distributions"))
+
+		self.assertContains(response, "C206")
+		self.assertContains(response, self.orders_url)
+		self.assertContains(response, reverse("distributions"))
+
+	def test_admin_sees_not_picked_up_orders_by_default(self):
+		self.client.force_login(self.admin)
+		self.pending.refresh_from_db()
+
+		response = self.client.get(self.orders_url)
+
+		self.assertContains(response, "member@example.com")
+		self.assertContains(response, "En attente de paiement")
+		self.assertContains(response, "ready@example.com")
+		self.assertContains(response, "Prête à récupérer")
+		self.assertContains(
+			response,
+			timezone.localtime(self.pending.created_at).strftime("%d/%m/%Y %H:%M"),
+		)
+		self.assertNotContains(response, "picked-up@example.com")
+		self.assertNotContains(response, "Annulée")
+		self.assertNotContains(response, "Payée")
+
+	def test_admin_filters_picked_up_orders(self):
+		self.client.force_login(self.admin)
+
+		response = self.client.get(self.orders_url, {"filtre": "recuperees"})
+
+		self.assertContains(response, "picked-up@example.com")
+		self.assertContains(response, "Récupérée")
+		self.assertContains(
+			response,
+			timezone.localtime(self.picked_up.picked_up_at).strftime("%d/%m/%Y %H:%M"),
+		)
+		self.assertNotContains(response, "member@example.com")
+		self.assertNotContains(response, "ready@example.com")
+		self.assertNotContains(response, "Annulée")
+		self.assertNotContains(response, "Payée")
+		self.assertNotContains(response, "En attente de paiement")

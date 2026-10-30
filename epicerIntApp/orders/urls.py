@@ -24,4 +24,9 @@ urlpatterns = [
 		views.distribution_close,
 		name="distribution_close",
 	),
+	path(
+		"distributions/<int:distribution_id>/commandes/",
+		views.distribution_orders_page,
+		name="distribution_orders",
+	),
 ]
