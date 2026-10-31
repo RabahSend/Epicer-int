@@ -4,13 +4,28 @@ from catalog.models import Product
 from orders.models import Distribution, Order, OrderItem
 
 def mark_order_as_picked_up(order):
-    if order.status not in (Order.Status.PAID, Order.Status.READY):
-        return False
-    order.status = Order.Status.PICKED_UP
-    order.picked_up_at = timezone.now()
-    order.save()
-    return True
-  
+	if order.status not in (Order.Status.PAID, Order.Status.READY):
+		return False
+	order.status = Order.Status.PICKED_UP
+	order.picked_up_at = timezone.now()
+	order.save()
+	return True
+
+
+def open_distribution(distribution):
+	with transaction.atomic():
+		Distribution.objects.exclude(pk=distribution.pk).filter(is_active=True).update(is_active=False)
+		distribution.is_active = True
+		distribution.save(update_fields=["is_active"])
+	return distribution
+
+
+def close_distribution(distribution):
+	distribution.is_active = False
+	distribution.save(update_fields=["is_active"])
+	return distribution
+
+
 def create_order_from_cart(user, cart):
 	distribution = Distribution.objects.filter(is_active=True).order_by("-starts_at").first()
 	if distribution is None or not cart:
