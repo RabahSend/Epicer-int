@@ -51,5 +51,10 @@ def create_order_from_cart(user, cart):
 	return order
 
 
+def mark_order_as_ready(order):
+	if order.status != Order.Status.PAID:
+		return False
+	order.status = Order.Status.READY
+	order.save()
+	return True
 
-    

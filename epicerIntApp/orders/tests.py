@@ -6,7 +6,11 @@ from django.urls import reverse
 from django.utils import timezone
 from catalog.models import Category, Product
 from orders.models import Distribution, Order
-from orders.services import create_order_from_cart, mark_order_as_picked_up
+from orders.services import (
+	create_order_from_cart,
+	mark_order_as_picked_up,
+	mark_order_as_ready,
+)
 from users.models import User
 
 
@@ -163,6 +167,7 @@ class PlaceOrderTests(TestCase):
 
 		self.assertNotContains(response, "Pâtes")
 		self.assertContains(response, "Vous n'avez pas encore de commande.")
+
 
 
 class DistributionManagementTests(TestCase):
@@ -337,6 +342,7 @@ class DistributionManagementTests(TestCase):
 		)
 
 
+
 class DistributionOrdersTests(TestCase):
 	def setUp(self):
 		self.admin = User.objects.create_user(
@@ -453,3 +459,71 @@ class DistributionOrdersTests(TestCase):
 		self.assertNotContains(response, "Annulée")
 		self.assertNotContains(response, "Payée")
 		self.assertNotContains(response, "En attente de paiement")
+
+
+class MarkOrderReadyTests(TestCase):
+	def setUp(self):
+		self.member = User.objects.create_user(
+			email="member@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.admin = User.objects.create_superuser(
+			email="admin@example.com",
+			password="secure-test-password",
+		)
+		self.distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C206",
+		)
+
+	def make_order(self, status):
+		return Order.objects.create(
+			user=self.member,
+			distribution=self.distribution,
+			status=status,
+		)
+
+	def test_paid_order_becomes_ready(self):
+		order = self.make_order(Order.Status.PAID)
+
+		self.assertTrue(mark_order_as_ready(order))
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.READY)
+
+	def test_other_statuses_are_refused(self):
+		for status in (
+			Order.Status.PENDING,
+			Order.Status.READY,
+			Order.Status.PICKED_UP,
+			Order.Status.CANCELLED,
+		):
+			with self.subTest(status=status):
+				order = self.make_order(status)
+
+				self.assertFalse(mark_order_as_ready(order))
+				order.refresh_from_db()
+				self.assertEqual(order.status, status)
+
+	def test_admin_marks_a_paid_order_as_ready(self):
+		order = self.make_order(Order.Status.PAID)
+		self.client.force_login(self.admin)
+
+		response = self.client.post(
+			reverse("admin:orders_order_changelist"),
+			{"action": "mark_as_ready", "_selected_action": [order.pk]},
+			follow=True,
+		)
+
+		self.assertEqual(response.status_code, 200)
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.READY)
+		self.assertContains(response, "est prête à récupérer")
+
+	def test_member_cannot_open_the_order_admin(self):
+		self.client.force_login(self.member)
+		url = reverse("admin:orders_order_changelist")
+
+		response = self.client.get(url)
+
+		self.assertRedirects(response, f"/admin/login/?next={url}")
