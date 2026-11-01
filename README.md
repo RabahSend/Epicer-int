@@ -89,9 +89,9 @@ L'administration est accessible sur [http://localhost:8000/admin/](http://localh
 - [x] Gestion des comptes des cotisants et authentification
 - [x] Gestion des produits et des stocks
 - [x] Consultation du catalogue et préparation du panier
-- [ ] Passage et validation des commandes
+- [x] Passage et validation des commandes
 - [ ] Paiement en ligne
-- [ ] Organisation du retrait des commandes lors des distributions
+- [x] Organisation du retrait des commandes lors des distributions
 - [ ] Notifications aux utilisateurs
 - [ ] Tableau de bord administrateur (optionnel)
 
