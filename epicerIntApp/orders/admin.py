@@ -28,14 +28,17 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.action(description="Encaisser le paiement")
 def collect_payment(modeladmin, request, queryset):
+    if queryset.count() != 1:
+        messages.error(request, "Sélectionne une seule commande pour encaisser son paiement.")
+        return None
+    order = queryset.get()
     if request.POST.get("apply"):
         provider = request.POST.get("provider", "")
         external_id = request.POST.get("external_id", "")
-        for order in queryset:
-            if collect_order_payment(order, provider=provider, external_id=external_id):
-                messages.success(request, f"La commande n°{order.pk} est payée.")
-            else:
-                messages.error(request, f"La commande n°{order.pk} ne peut pas être encaissée.")
+        if collect_order_payment(order, provider=provider, external_id=external_id):
+            messages.success(request, f"La commande n°{order.pk} est payée.")
+        else:
+            messages.error(request, f"La commande n°{order.pk} ne peut pas être encaissée.")
         return None
     return render(
         request,

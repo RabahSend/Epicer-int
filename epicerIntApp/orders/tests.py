@@ -638,6 +638,31 @@ class CollectOrderPaymentTests(TestCase):
 		self.assertEqual(order.payment.external_id, "tx-789")
 		self.assertContains(response, "est payée")
 
+	def test_admin_cannot_collect_several_orders_at_once(self):
+		first = self.make_order(Order.Status.PENDING)
+		second = self.make_order(Order.Status.PENDING)
+		self.client.force_login(self.admin)
+
+		response = self.client.post(
+			reverse("admin:orders_order_changelist"),
+			{
+				"action": "collect_payment",
+				"apply": "1",
+				"_selected_action": [first.pk, second.pk],
+				"provider": "Lydia",
+				"external_id": "tx-shared",
+			},
+			follow=True,
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, "Sélectionne une seule commande")
+		first.refresh_from_db()
+		second.refresh_from_db()
+		self.assertEqual(first.status, Order.Status.PENDING)
+		self.assertEqual(second.status, Order.Status.PENDING)
+		self.assertFalse(Payment.objects.exists())
+
 	def test_member_cannot_open_the_order_admin(self):
 		self.client.force_login(self.member)
 		url = reverse("admin:orders_order_changelist")
