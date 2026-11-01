@@ -5,8 +5,9 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from catalog.models import Category, Product
-from orders.models import Distribution, Order
+from orders.models import Distribution, Order, OrderItem, Payment
 from orders.services import (
+	collect_order_payment,
 	create_order_from_cart,
 	mark_order_as_picked_up,
 	mark_order_as_ready,
@@ -519,6 +520,123 @@ class MarkOrderReadyTests(TestCase):
 		order.refresh_from_db()
 		self.assertEqual(order.status, Order.Status.READY)
 		self.assertContains(response, "est prête à récupérer")
+
+	def test_member_cannot_open_the_order_admin(self):
+		self.client.force_login(self.member)
+		url = reverse("admin:orders_order_changelist")
+
+		response = self.client.get(url)
+
+		self.assertRedirects(response, f"/admin/login/?next={url}")
+
+
+class CollectOrderPaymentTests(TestCase):
+	def setUp(self):
+		category = Category.objects.create(name="Féculents")
+		self.product = Product.objects.create(
+			name="Pâtes", category=category, price="1.50", stock=3
+		)
+		self.member = User.objects.create_user(
+			email="member@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.admin = User.objects.create_superuser(
+			email="admin@example.com",
+			password="secure-test-password",
+		)
+		self.distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C206",
+		)
+
+	def make_order(self, status, quantity=2, unit_price="1.50"):
+		order = Order.objects.create(
+			user=self.member,
+			distribution=self.distribution,
+			status=status,
+		)
+		OrderItem.objects.create(
+			order=order,
+			product=self.product,
+			quantity=quantity,
+			unit_price=unit_price,
+		)
+		return order
+
+	def test_pending_order_is_paid_and_payment_is_recorded(self):
+		order = self.make_order(Order.Status.PENDING)
+
+		self.assertTrue(
+			collect_order_payment(order, provider="Lydia", external_id="tx-123")
+		)
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PAID)
+		payment = order.payment
+		self.assertEqual(payment.amount, Decimal("3.00"))
+		self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+		self.assertEqual(payment.provider, "Lydia")
+		self.assertEqual(payment.external_id, "tx-123")
+		self.assertIsNotNone(payment.paid_at)
+
+	def test_other_statuses_are_refused(self):
+		for status in (
+			Order.Status.PAID,
+			Order.Status.READY,
+			Order.Status.PICKED_UP,
+			Order.Status.CANCELLED,
+		):
+			with self.subTest(status=status):
+				order = self.make_order(status)
+
+				self.assertFalse(collect_order_payment(order, provider="Lydia", external_id="tx-1"))
+				order.refresh_from_db()
+				self.assertEqual(order.status, status)
+				self.assertFalse(Payment.objects.filter(order=order).exists())
+
+	def test_failed_payment_is_updated(self):
+		order = self.make_order(Order.Status.PENDING)
+		payment = Payment.objects.create(
+			order=order,
+			amount=Decimal("0.00"),
+			status=Payment.Status.FAILED,
+		)
+
+		self.assertTrue(
+			collect_order_payment(order, provider="Lydia", external_id="tx-456")
+		)
+		order.refresh_from_db()
+		payment.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PAID)
+		self.assertEqual(Payment.objects.filter(order=order).count(), 1)
+		self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+		self.assertEqual(payment.amount, Decimal("3.00"))
+		self.assertEqual(payment.provider, "Lydia")
+		self.assertEqual(payment.external_id, "tx-456")
+		self.assertIsNotNone(payment.paid_at)
+
+	def test_admin_collects_a_pending_payment(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.client.force_login(self.admin)
+
+		response = self.client.post(
+			reverse("admin:orders_order_changelist"),
+			{
+				"action": "collect_payment",
+				"apply": "1",
+				"_selected_action": [order.pk],
+				"provider": "Lydia",
+				"external_id": "tx-789",
+			},
+			follow=True,
+		)
+
+		self.assertEqual(response.status_code, 200)
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PAID)
+		self.assertEqual(order.payment.provider, "Lydia")
+		self.assertEqual(order.payment.external_id, "tx-789")
+		self.assertContains(response, "est payée")
 
 	def test_member_cannot_open_the_order_admin(self):
 		self.client.force_login(self.member)
