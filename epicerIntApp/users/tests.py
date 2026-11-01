@@ -19,6 +19,8 @@ class SignupTests(TestCase):
 
 		self.assertRedirects(response, reverse("profile"))
 		user = User.objects.get(email="visitor@example.com")
+		self.assertEqual(user.first_name, "Adel")
+		self.assertEqual(user.last_name, "Khaldoun")
 		self.assertFalse(user.is_member)
 		self.assertTrue(user.is_authenticated)
 
