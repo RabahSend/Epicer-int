@@ -3,9 +3,9 @@ from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, TemplateView
+from django.views.generic import CreateView, UpdateView
 
-from .forms import SignupForm
+from .forms import ProfileForm, SignupForm
 
 
 class SignupPage(CreateView):
@@ -27,5 +27,10 @@ class SigninPage(LoginView):
 	template_name = "users/login_form.html"
 
 
-class ProfilePage(LoginRequiredMixin, TemplateView):
-	template_name = "users/profile.html"
+class ProfilePage(LoginRequiredMixin, UpdateView):
+    template_name = "users/profile.html"
+    form_class = ProfileForm
+    success_url = reverse_lazy("profile")
+
+    def get_object(self, queryset=None):
+        return self.request.user
