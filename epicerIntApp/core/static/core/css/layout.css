@@ -119,6 +119,8 @@
     cursor: pointer;
   }
   .availability--in-stock { color: var(--vert); }
+  .category-section { margin-top: 2rem; }
+  .category-section > h2 { margin-bottom: 0.5rem; }
   .message { padding: 0.75rem; background: white; }
   .cart-table { width: 100%; border-collapse: collapse; }
   .cart-table th, .cart-table td { padding: 0.75rem; border-bottom: 1px solid #c9c3b6; text-align: left; }

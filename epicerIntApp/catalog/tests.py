@@ -1,21 +1,25 @@
+from io import BytesIO
 from tempfile import TemporaryDirectory
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
+from PIL import Image
 
 from .models import Category, Product
 
 
+def create_test_image():
+	image = Image.new("RGB", (1, 1), color="white")
+	buffer = BytesIO()
+	image.save(buffer, format="PNG")
+	return buffer.getvalue()
+
+
 class ProductAvailabilityTests(TestCase):
 	def test_product_image_is_saved(self):
-		png_image = (
-			b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
-			b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
-			b"\x00\x00\x00\x0bIDAT\x08\xd7c\xf8\x0f\x00\x01\x01"
-			b"\x01\x00\x18\xdd\x8d\xb0\x00\x00\x00\x00IEND\xaeB`\x82"
-		)
+		png_image = create_test_image()
 		with TemporaryDirectory() as media_root:
 			with override_settings(MEDIA_ROOT=media_root):
 				category = Category.objects.create(name="Féculents")
@@ -32,12 +36,7 @@ class ProductAvailabilityTests(TestCase):
 				self.assertTrue(product.image.storage.exists(product.image.name))
 
 	def test_product_image_is_shown_on_catalogue(self):
-		png_image = (
-			b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
-			b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
-			b"\x00\x00\x00\x0bIDAT\x08\xd7c\xf8\x0f\x00\x01\x01"
-			b"\x01\x00\x18\xdd\x8d\xb0\x00\x00\x00\x00IEND\xaeB`\x82"
-		)
+		png_image = create_test_image()
 		with TemporaryDirectory() as media_root:
 			with override_settings(MEDIA_ROOT=media_root):
 				category = Category.objects.create(name="Féculents")
@@ -67,6 +66,37 @@ class ProductAvailabilityTests(TestCase):
 		self.assertContains(response, "Riz")
 		self.assertContains(response, "4 en stock")
 		self.assertContains(response, reverse("signup"))
+
+	def test_products_are_grouped_under_their_category(self):
+		pasta_category = Category.objects.create(name="Féculents")
+		dairy_category = Category.objects.create(name="Produits laitiers")
+		Product.objects.create(
+			name="Riz", category=pasta_category, price="2.50", stock=4
+		)
+		Product.objects.create(
+			name="Lait", category=dairy_category, price="1.20", stock=3
+		)
+
+		response = self.client.get(reverse("products"))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'id="category-%s"' % pasta_category.pk)
+		self.assertContains(response, 'id="category-%s"' % dairy_category.pk)
+		self.assertLess(
+			response.content.index(b"F\xc3\xa9culents"),
+			response.content.index(b"Riz"),
+		)
+		self.assertLess(
+			response.content.index(b"Produits laitiers"),
+			response.content.index(b"Lait"),
+		)
+
+	def test_categories_without_active_products_are_not_shown(self):
+		category = Category.objects.create(name="Catégorie vide")
+
+		response = self.client.get(reverse("products"))
+
+		self.assertNotContains(response, category.name)
 
 	def test_inactive_products_are_not_public(self):
 		category = Category.objects.create(name="Féculents")

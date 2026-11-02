@@ -1,50 +1,61 @@
 {% extends "base.html" %}
 
 {% block content %}
+  {% comment %}
   <section class="hero">
     <p class="hero__eyebrow">Les produits</p>
     <h1>Disponibilités des produits</h1>
     <p>Consultez les stocks proposés lors des distributions Épicer'INT.</p>
   </section>
+  {% endcomment %}
 
-  <section class="product-list" aria-label="Catalogue des produits">
-    {% for product in products %}
-      <article class="product-item">
-        {% if product.image %}
-          <img
-            class="product-item__image"
-            src="{{ product.image.url }}"
-            alt="{{ product.name }}"
-            loading="lazy"
-          >
-        {% endif %}
-        <div>
-          <h2>{{ product.name }}</h2>
-          <p>{{ product.category }} · {{ product.price }} €</p>
-          {% if product.description %}<p>{{ product.description }}</p>{% endif %}
-          {% if product.stock > 0 %}
-            <p class="availability availability--in-stock">Disponible · {{ product.stock }} en stock</p>
-          {% else %}
-            <p class="availability">Indisponible</p>
-          {% endif %}
+  <section aria-label="Catalogue des produits">
+    {% for category in categories %}
+      <section class="category-section" aria-labelledby="category-{{ category.pk }}">
+        <h2 id="category-{{ category.pk }}">{{ category.name }}</h2>
+        <div class="product-list">
+          {% for product in category.products.all %}
+            {% if product.is_active %}
+              <article class="product-item">
+                {% if product.image %}
+                  <img
+                    class="product-item__image"
+                    src="{{ product.image.url }}"
+                    alt="{{ product.name }}"
+                    loading="lazy"
+                  >
+                {% endif %}
+                <div>
+                  <h3>{{ product.name }}</h3>
+                  <p>{{ product.price }} €</p>
+                  {% if product.description %}<p>{{ product.description }}</p>{% endif %}
+                  {% if product.stock > 0 %}
+                    <p class="availability availability--in-stock">Disponible · {{ product.stock }} en stock</p>
+                  {% else %}
+                    <p class="availability">Indisponible</p>
+                  {% endif %}
+                </div>
+                {% if user.is_authenticated and user.is_member %}
+                  {% if product.stock > 0 %}
+                    <form action="{% url 'add_to_cart' product.pk %}" method="post">
+                      {% csrf_token %}
+                      <label for="quantity-{{ product.pk }}">Quantité</label>
+                      <input id="quantity-{{ product.pk }}" name="quantity" type="number" min="1" max="{{ product.stock }}" value="1" required>
+                      <button type="submit">Ajouter au panier</button>
+                    </form>
+                  {% else %}
+                    <p>Indisponible pour le moment</p>
+                  {% endif %}
+                {% elif user.is_authenticated %}
+                  <a class="button-link" href="{% url 'profile' %}">Cotiser pour commander</a>
+                {% else %}
+                  <a class="button-link" href="{% url 'signup' %}">Adhérer et créer un compte</a>
+                {% endif %}
+              </article>
+            {% endif %}
+          {% endfor %}
         </div>
-        {% if user.is_authenticated and user.is_member %}
-          {% if product.stock > 0 %}
-            <form action="{% url 'add_to_cart' product.pk %}" method="post">
-              {% csrf_token %}
-              <label for="quantity-{{ product.pk }}">Quantité</label>
-              <input id="quantity-{{ product.pk }}" name="quantity" type="number" min="1" max="{{ product.stock }}" value="1" required>
-              <button type="submit">Ajouter au panier</button>
-            </form>
-          {% else %}
-            <p>Indisponible pour le moment</p>
-          {% endif %}
-        {% elif user.is_authenticated %}
-          <a class="button-link" href="{% url 'profile' %}">Cotiser pour commander</a>
-        {% else %}
-          <a class="button-link" href="{% url 'signup' %}">Adhérer et créer un compte</a>
-        {% endif %}
-      </article>
+      </section>
     {% empty %}
       <p>Aucun produit n'est actuellement proposé.</p>
     {% endfor %}
