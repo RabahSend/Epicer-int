@@ -8,11 +8,19 @@ class SignupTests(TestCase):
 	def test_signup_creates_non_member_account(self):
 		response = self.client.post(
 			reverse("signup"),
-			{"email": "visitor@example.com", "password1": "secure-test-password", "password2": "secure-test-password"},
+			{
+				"first_name": "Adel",
+				"last_name": "Khaldoun",
+				"email": "visitor@example.com",
+				"password1": "secure-test-password",
+				"password2": "secure-test-password",
+			},
 		)
 
 		self.assertRedirects(response, reverse("profile"))
 		user = User.objects.get(email="visitor@example.com")
+		self.assertEqual(user.first_name, "Adel")
+		self.assertEqual(user.last_name, "Khaldoun")
 		self.assertFalse(user.is_member)
 		self.assertTrue(user.is_authenticated)
 
