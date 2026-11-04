@@ -20,7 +20,10 @@
           <a href="#">Notifications</a>
           <a href="{% url 'profile' %}">Mon compte</a>
           {% if user.is_member %}<a href="{% url 'cart' %}">Mon panier</a>{% endif %}
-          {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administration</a>{% endif %}
+          {% if user.is_staff %}
+            <a href="{% url 'distributions' %}">Distributions</a>
+            <a href="{% url 'admin:index' %}">Administration</a>
+          {% endif %}
           <form action="{% url 'logout' %}" method="post">
             {% csrf_token %}
             <button type="submit">Déconnexion</button>
