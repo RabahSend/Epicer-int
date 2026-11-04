@@ -2,7 +2,12 @@ from django.contrib import admin, messages
 from django.shortcuts import render
 
 from orders.models import Distribution, Order, OrderItem, Payment
-from orders.services import collect_order_payment, mark_order_as_picked_up, mark_order_as_ready
+from orders.services import (
+    collect_order_payment,
+    fail_order_payment,
+    mark_order_as_picked_up,
+    mark_order_as_ready,
+)
 
 
 class OrderItemInline(admin.TabularInline):
@@ -47,6 +52,36 @@ def collect_payment(modeladmin, request, queryset):
     )
 
 
+@admin.action(description="Enregistrer l'échec du paiement")
+def fail_payment(modeladmin, request, queryset):
+    if queryset.count() != 1:
+        messages.error(
+            request,
+            "Sélectionne une seule commande pour enregistrer l'échec de son paiement.",
+        )
+        return None
+    order = queryset.get()
+    if request.POST.get("apply"):
+        provider = request.POST.get("provider", "")
+        external_id = request.POST.get("external_id", "")
+        if fail_order_payment(order, provider=provider, external_id=external_id):
+            messages.success(
+                request,
+                f"L'échec du paiement de la commande n°{order.pk} est enregistré.",
+            )
+        else:
+            messages.error(
+                request,
+                f"L'échec du paiement de la commande n°{order.pk} ne peut pas être enregistré.",
+            )
+        return None
+    return render(
+        request,
+        "admin/orders/fail_payment.html",
+        {"orders": queryset, "title": "Enregistrer l'échec du paiement"},
+    )
+
+
 @admin.action(description="Marquer comme prête à récupérer")
 def mark_as_ready(modeladmin, request, queryset):
     for order in queryset:
@@ -68,5 +103,5 @@ def mark_as_picked_up(modeladmin, request, queryset):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "distribution", "status", "created_at", "picked_up_at")
     list_filter = ("status",)
-    actions = [collect_payment, mark_as_ready, mark_as_picked_up]
+    actions = [collect_payment, fail_payment, mark_as_ready, mark_as_picked_up]
     inlines = [OrderItemInline, PaymentInline]
