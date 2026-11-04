@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <form method="post">
+    {% csrf_token %}
+    {% for order in orders %}
+      <input type="hidden" name="_selected_action" value="{{ order.pk }}">
+      <p>Commande n°{{ order.pk }}</p>
+    {% endfor %}
+    <input type="hidden" name="action" value="fail_payment">
+    <input type="hidden" name="apply" value="1">
+    <p>
+      <label for="id_provider">Prestataire</label>
+      <input id="id_provider" name="provider" maxlength="50">
+    </p>
+    <p>
+      <label for="id_external_id">Référence de transaction</label>
+      <input id="id_external_id" name="external_id" maxlength="255">
+    </p>
+    <button type="submit">Enregistrer l'échec</button>
+  </form>
+{% endblock %}
