@@ -1,6 +1,6 @@
 from django.views.generic import TemplateView
 
-from .models import Product
+from .models import Category
 
 
 class ProductsPage(TemplateView):
@@ -8,5 +8,9 @@ class ProductsPage(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["products"] = Product.objects.filter(is_active=True)
+        context["categories"] = Category.objects.filter(
+            products__is_active=True
+        ).distinct().prefetch_related(
+            "products"
+        )
         return context
