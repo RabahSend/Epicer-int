@@ -21,8 +21,26 @@ class SignupTests(TestCase):
 		user = User.objects.get(email="visitor@example.com")
 		self.assertEqual(user.first_name, "Adel")
 		self.assertEqual(user.last_name, "Khaldoun")
+		self.assertEqual(user.username, "visitor@example.com")
 		self.assertFalse(user.is_member)
 		self.assertTrue(user.is_authenticated)
+
+	def test_signup_allows_creating_multiple_accounts(self):
+		for email in ("first@example.com", "second@example.com"):
+			response = self.client.post(
+				reverse("signup"),
+				{
+					"first_name": "Test",
+					"last_name": "User",
+					"email": email,
+					"password1": "secure-test-password",
+					"password2": "secure-test-password",
+				},
+			)
+
+			self.assertRedirects(response, reverse("profile"))
+
+		self.assertEqual(User.objects.count(), 2)
 
 	def test_profile_requires_authentication(self):
 		response = self.client.get(reverse("profile"))

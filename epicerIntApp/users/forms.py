@@ -12,6 +12,10 @@ class SignupForm(UserCreationForm):
         model = User
         fields = ("first_name", "last_name", "email")
 
+    def save(self, commit=True):
+        self.instance.username = self.cleaned_data["email"]
+        return super().save(commit=commit)
+
 
 class ProfileForm(forms.ModelForm):
     first_name = forms.CharField(label="Prénom", max_length=150)
