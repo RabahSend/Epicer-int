@@ -98,6 +98,29 @@ def collect_order_payment(order, provider="", external_id=""):
 	return True
 
 
+def cancel_order(order):
+	if order.status != Order.Status.PENDING:
+		return False
+
+	with transaction.atomic():
+		current = (
+			Order.objects.select_for_update()
+			.filter(pk=order.pk, status=Order.Status.PENDING)
+			.first()
+		)
+		if current is None:
+			return False
+
+		for item in current.items.order_by("product_id"):
+			product = Product.objects.select_for_update().get(pk=item.product_id)
+			product.stock += item.quantity
+			product.save(update_fields=["stock"])
+
+		order.status = Order.Status.CANCELLED
+		order.save(update_fields=["status", "updated_at"])
+	return True
+
+
 def fail_order_payment(order, provider="", external_id=""):
 	if order.status != Order.Status.PENDING:
 		return False

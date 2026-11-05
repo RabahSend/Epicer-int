@@ -7,6 +7,7 @@ from django.utils import timezone
 from catalog.models import Category, Product
 from orders.models import Distribution, Order, OrderItem, Payment
 from orders.services import (
+	cancel_order,
 	collect_order_payment,
 	create_order_from_cart,
 	fail_order_payment,
@@ -877,3 +878,175 @@ class FailOrderPaymentTests(TestCase):
 		response = self.client.get(url)
 
 		self.assertRedirects(response, f"/admin/login/?next={url}")
+
+
+class CancelOrderTests(TestCase):
+	def setUp(self):
+		category = Category.objects.create(name="Féculents")
+		self.product = Product.objects.create(
+			name="Pâtes", category=category, price="1.50", stock=3
+		)
+		self.other_product = Product.objects.create(
+			name="Riz", category=category, price="2.00", stock=4
+		)
+		self.member = User.objects.create_user(
+			email="member@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C206",
+		)
+
+	def make_order(self, status, user=None, quantity=2):
+		order = Order.objects.create(
+			user=user or self.member,
+			distribution=self.distribution,
+			status=status,
+		)
+		OrderItem.objects.create(
+			order=order,
+			product=self.product,
+			quantity=quantity,
+			unit_price="1.50",
+		)
+		return order
+
+	def test_pending_order_is_cancelled_and_each_line_returns_to_stock(self):
+		order = self.make_order(Order.Status.PENDING, quantity=2)
+		OrderItem.objects.create(
+			order=order,
+			product=self.other_product,
+			quantity=1,
+			unit_price="2.00",
+		)
+
+		self.assertTrue(cancel_order(order))
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		self.other_product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.CANCELLED)
+		self.assertEqual(self.product.stock, 5)
+		self.assertEqual(self.other_product.stock, 5)
+
+	def test_cancelling_twice_returns_stock_only_once(self):
+		order = self.make_order(Order.Status.PENDING, quantity=2)
+
+		self.assertTrue(cancel_order(order))
+		order.refresh_from_db()
+		self.assertFalse(cancel_order(order))
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.CANCELLED)
+		self.assertEqual(self.product.stock, 5)
+
+	def test_other_statuses_are_refused(self):
+		for status in (
+			Order.Status.PAID,
+			Order.Status.READY,
+			Order.Status.PICKED_UP,
+			Order.Status.CANCELLED,
+		):
+			with self.subTest(status=status):
+				order = self.make_order(status)
+				stock = self.product.stock
+
+				self.assertFalse(cancel_order(order))
+				order.refresh_from_db()
+				self.product.refresh_from_db()
+				self.assertEqual(order.status, status)
+				self.assertEqual(self.product.stock, stock)
+
+	def test_pending_order_with_a_failed_payment_can_be_cancelled(self):
+		order = self.make_order(Order.Status.PENDING)
+		payment = Payment.objects.create(
+			order=order,
+			amount=Decimal("3.00"),
+			status=Payment.Status.FAILED,
+		)
+
+		self.assertTrue(cancel_order(order))
+		order.refresh_from_db()
+		payment.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.CANCELLED)
+		self.assertEqual(payment.status, Payment.Status.FAILED)
+		self.assertEqual(self.product.stock, 5)
+
+	def test_orders_page_offers_cancellation_only_while_payment_is_pending(self):
+		pending = self.make_order(Order.Status.PENDING)
+		paid = self.make_order(Order.Status.PAID)
+		self.client.force_login(self.member)
+
+		response = self.client.get(reverse("orders"))
+
+		self.assertContains(response, "Annuler la commande", count=1)
+		self.assertContains(response, reverse("cancel_order", args=[pending.pk]))
+		self.assertNotContains(response, reverse("cancel_order", args=[paid.pk]))
+
+	def test_member_cancels_a_pending_order_from_the_orders_page(self):
+		order = self.make_order(Order.Status.PENDING, quantity=2)
+		self.client.force_login(self.member)
+
+		response = self.client.post(reverse("cancel_order", args=[order.pk]), follow=True)
+
+		self.assertRedirects(response, reverse("orders"))
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.CANCELLED)
+		self.assertEqual(self.product.stock, 5)
+		self.assertContains(response, "Votre commande a été annulée.")
+		self.assertContains(response, "Annulée")
+		self.assertNotContains(response, "Annuler la commande")
+
+	def test_member_cannot_cancel_an_order_that_is_no_longer_pending(self):
+		self.client.force_login(self.member)
+		for status in (
+			Order.Status.PAID,
+			Order.Status.READY,
+			Order.Status.PICKED_UP,
+			Order.Status.CANCELLED,
+		):
+			with self.subTest(status=status):
+				order = self.make_order(status)
+				stock = self.product.stock
+
+				response = self.client.post(
+					reverse("cancel_order", args=[order.pk]),
+					follow=True,
+				)
+
+				self.assertRedirects(response, reverse("orders"))
+				order.refresh_from_db()
+				self.product.refresh_from_db()
+				self.assertEqual(order.status, status)
+				self.assertEqual(self.product.stock, stock)
+				self.assertContains(response, "Cette commande ne peut plus être annulée.")
+
+	def test_member_cannot_cancel_another_members_order(self):
+		order = self.make_order(Order.Status.PENDING)
+		stock = self.product.stock
+		other = User.objects.create_user(
+			email="other@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.client.force_login(other)
+
+		response = self.client.post(reverse("cancel_order", args=[order.pk]))
+
+		self.assertEqual(response.status_code, 404)
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertEqual(self.product.stock, stock)
+
+	def test_visitor_is_sent_to_login(self):
+		order = self.make_order(Order.Status.PENDING)
+		url = reverse("cancel_order", args=[order.pk])
+
+		response = self.client.post(url)
+
+		self.assertRedirects(response, f"{reverse('login')}?next={url}")
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)

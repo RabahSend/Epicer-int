@@ -17,6 +17,12 @@
               <li>{{ item.product.name }} x {{ item.quantity }} - {{ item.unit_price }} €</li>
             {% endfor %}
           </ul>
+          {% if order.status == "pending" %}
+            <form method="post" action="{% url 'cancel_order' order.pk %}">
+              {% csrf_token %}
+              <button type="submit">Annuler la commande</button>
+            </form>
+          {% endif %}
         </article>
       {% endfor %}
     </section>
