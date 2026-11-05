@@ -16,6 +16,11 @@ L'application est accessible sur [http://localhost:8000](http://localhost:8000).
 
 ## Comptes par défaut
 
+Au démarrage, Docker crée les données de démonstration si elles n'existent pas encore : catégories, produits en stock, un cotisant et une distribution active.
+
+- **Admin :** `admin@epicerint.local` / `projetinfo1A`
+- **Cotisant :** `membre@epicerint.local` / `projetinfo1A`
+
 Un compte administrateur est créé automatiquement au démarrage de Docker :
 ```bash
 docker compose exec web python manage.py createsuperuser

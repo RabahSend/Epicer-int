@@ -60,4 +60,6 @@ else:
 PY
 fi
 
+python manage.py seed_demo
+
 exec "$@"
