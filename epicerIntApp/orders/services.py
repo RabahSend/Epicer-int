@@ -97,3 +97,37 @@ def collect_order_payment(order, provider="", external_id=""):
 		order.save(update_fields=["status", "updated_at"])
 	return True
 
+
+def fail_order_payment(order, provider="", external_id=""):
+	if order.status != Order.Status.PENDING:
+		return False
+
+	payment = Payment.objects.filter(order=order).first()
+	if payment is not None and payment.status in (
+		Payment.Status.SUCCEEDED,
+		Payment.Status.REFUNDED,
+	):
+		return False
+
+	amount = sum(
+		(item.unit_price * item.quantity for item in order.items.all()),
+		Decimal("0"),
+	)
+	with transaction.atomic():
+		if payment is None:
+			Payment.objects.create(
+				order=order,
+				amount=amount,
+				status=Payment.Status.FAILED,
+				provider=provider,
+				external_id=external_id,
+			)
+		else:
+			payment.amount = amount
+			payment.status = Payment.Status.FAILED
+			payment.provider = provider
+			payment.external_id = external_id
+			payment.paid_at = None
+			payment.save()
+	return True
+
