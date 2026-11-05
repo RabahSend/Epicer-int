@@ -13,6 +13,14 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   web:
     build: .
     expose:
@@ -25,12 +33,15 @@ services:
       POSTGRES_DB: epicerint
       POSTGRES_USER: epicerint
       POSTGRES_PASSWORD: epicerint
+      REDIS_URL: redis://redis:6379/0
       DJANGO_ALLOWED_HOSTS: "*"
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
       DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@epicerint.local}
       DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-projetinfo1A}
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   proxy:
