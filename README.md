@@ -16,7 +16,7 @@ L'application est accessible sur [http://localhost:8000](http://localhost:8000).
 
 ## Comptes par défaut
 
-Au démarrage, Docker crée les données de démonstration si elles n'existent pas encore : catégories, produits en stock, un cotisant et une distribution active.
+Au démarrage local, Docker crée les données de démonstration si elles n'existent pas encore : catégories, produits en stock, un cotisant et une distribution active. Ce chargement ne part que si `SEED_DEMO=1` (déjà le cas dans `docker-compose.yml`). Pour un déploiement, laisser cette variable vide.
 
 - **Admin :** `admin@epicerint.local` / `projetinfo1A`
 - **Cotisant :** `membre@epicerint.local` / `projetinfo1A`

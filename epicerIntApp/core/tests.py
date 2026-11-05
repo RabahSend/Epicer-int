@@ -26,3 +26,12 @@ class SeedDemoTests(TestCase):
 		self.assertEqual(Product.objects.count(), len(PRODUCTS))
 		self.assertEqual(User.objects.filter(email=DEMO_MEMBER_EMAIL).count(), 1)
 		self.assertEqual(Distribution.objects.filter(is_active=True).count(), 1)
+
+	def test_seed_demo_skips_products_when_the_name_already_exists(self):
+		category = Category.objects.create(name="Féculents")
+		Product.objects.create(name="Riz", category=category, price="1.00", stock=1)
+		Product.objects.create(name="Riz", category=category, price="3.00", stock=2)
+
+		call_command("seed_demo")
+
+		self.assertEqual(Product.objects.filter(name="Riz").count(), 2)

@@ -40,17 +40,17 @@ class Command(BaseCommand):
 
         categories = {category.name: category for category in Category.objects.all()}
         for product_data in PRODUCTS:
-            _, created = Product.objects.get_or_create(
+            if Product.objects.filter(name=product_data["name"]).exists():
+                self.stdout.write(f"Produit {product_data['name']} déjà présent.")
+                continue
+            Product.objects.create(
                 name=product_data["name"],
-                defaults={
-                    "category": categories[product_data["category"]],
-                    "price": product_data["price"],
-                    "stock": product_data["stock"],
-                    "is_active": True,
-                },
+                category=categories[product_data["category"]],
+                price=product_data["price"],
+                stock=product_data["stock"],
+                is_active=True,
             )
-            if created:
-                self.stdout.write(f"Produit créé : {product_data['name']}")
+            self.stdout.write(f"Produit créé : {product_data['name']}")
 
         if User.objects.filter(email=DEMO_MEMBER_EMAIL).exists():
             self.stdout.write(f"Cotisant {DEMO_MEMBER_EMAIL} déjà présent.")
