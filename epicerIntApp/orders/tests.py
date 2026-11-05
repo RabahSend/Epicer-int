@@ -981,6 +981,13 @@ class CancelOrderTests(TestCase):
 		response = self.client.get(reverse("orders"))
 
 		self.assertContains(response, "Annuler la commande", count=1)
+		self.assertContains(response, "<dialog", count=1)
+		self.assertNotContains(response, "confirm(")
+		self.assertContains(
+			response,
+			"Êtes-vous sûr de vouloir annuler cette commande ?",
+			count=1,
+		)
 		self.assertContains(response, reverse("cancel_order", args=[pending.pk]))
 		self.assertNotContains(response, reverse("cancel_order", args=[paid.pk]))
 
