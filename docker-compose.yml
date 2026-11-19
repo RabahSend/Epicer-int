@@ -33,6 +33,7 @@ services:
       SUMUP_MERCHANT_CODE: ${SUMUP_MERCHANT_CODE:-}
       SUMUP_CURRENCY: ${SUMUP_CURRENCY:-EUR}
       SUMUP_API_BASE_URL: ${SUMUP_API_BASE_URL:-https://api.sumup.com}
+      SEED_DEMO: ${SEED_DEMO:-1}
     depends_on:
       db:
         condition: service_healthy
