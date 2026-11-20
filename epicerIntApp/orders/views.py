@@ -1,18 +1,23 @@
+from decimal import Decimal
 from functools import wraps
+from uuid import uuid4
 
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from orders.forms import DistributionForm
 from orders.selectors import NOT_PICKED_UP, PICKED_UP, orders_for_distribution
 from orders.services import (
+	can_start_order_payment,
 	cancel_order as cancel_pending_order,
 	close_distribution,
 	create_order_from_cart,
 	open_distribution,
 )
+from orders.sumup import SumUpError, SumUpNotConfigured, create_checkout
 from orders.models import Distribution, Order
 from catalog.models import Product
 
@@ -117,6 +122,51 @@ def place_order(request):
 
 	request.session["cart"] = {}
 	messages.success(request, "Votre commande a été enregistrée.")
+	return redirect("orders")
+
+
+@login_required
+@require_POST
+def pay_order(request, order_id):
+	order = get_object_or_404(Order, pk=order_id, user=request.user)
+	if not can_start_order_payment(order):
+		messages.error(request, "Cette commande ne peut plus être payée.")
+		return redirect("orders")
+
+	amount = sum(
+		(item.unit_price * item.quantity for item in order.items.all()),
+		Decimal("0"),
+	)
+	return_url = request.build_absolute_uri(reverse("order_payment_return", args=[order.pk]))
+	try:
+		checkout = create_checkout(
+			amount,
+			f"order-{order.pk}-{uuid4().hex[:12]}",
+			return_url,
+			description=f"Commande {order.pk}",
+		)
+	except SumUpNotConfigured:
+		messages.error(request, "Le paiement en ligne est indisponible pour le moment.")
+		return redirect("orders")
+	except SumUpError:
+		messages.error(request, "Impossible de lancer le paiement. Réessayez.")
+		return redirect("orders")
+
+	payment_url = checkout["hosted_checkout_url"]
+	if not payment_url.startswith("https://"):
+		messages.error(request, "Impossible de lancer le paiement. Réessayez.")
+		return redirect("orders")
+
+	checkouts = dict(request.session.get("sumup_checkouts", {}))
+	checkouts[str(order.pk)] = checkout["id"]
+	request.session["sumup_checkouts"] = checkouts
+	return redirect(payment_url)
+
+
+@login_required
+def payment_return(request, order_id):
+	# Le statut Sumup sera confirmé ici avant de marquer la commande payée
+	get_object_or_404(Order, pk=order_id, user=request.user)
 	return redirect("orders")
 
 

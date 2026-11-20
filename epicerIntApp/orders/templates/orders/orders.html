@@ -18,6 +18,10 @@
             {% endfor %}
           </ul>
           {% if order.status == "pending" %}
+            <form method="post" action="{% url 'pay_order' order.pk %}">
+              {% csrf_token %}
+              <button type="submit">Payer</button>
+            </form>
             <button type="button" data-cancel-open="cancel-order-{{ order.pk }}">Annuler la commande</button>
             <dialog class="confirm-dialog" id="cancel-order-{{ order.pk }}" aria-labelledby="cancel-order-question-{{ order.pk }}">
               <p id="cancel-order-question-{{ order.pk }}">Êtes-vous sûr de vouloir annuler cette commande ?</p>
