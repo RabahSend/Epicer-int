@@ -358,3 +358,289 @@ class PayOrderTests(TestCase):
 		self.assertRedirects(response, reverse("orders"))
 		self.assertNotIn("sumup_checkouts", self.client.session)
 		self.assertContains(response, "Impossible de lancer le paiement. Réessayez.")
+
+
+class PaymentReturnTests(TestCase):
+	def setUp(self):
+		category = Category.objects.create(name="Féculents")
+		self.product = Product.objects.create(
+			name="Pâtes", category=category, price="1.50", stock=3
+		)
+		self.member = User.objects.create_user(
+			email="member@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.distribution = Distribution.objects.create(
+			starts_at=timezone.now(),
+			location="C206",
+		)
+		self.client.force_login(self.member)
+
+	def make_order(self, status, user=None, quantity=2):
+		order = Order.objects.create(
+			user=user or self.member,
+			distribution=self.distribution,
+			status=status,
+		)
+		OrderItem.objects.create(
+			order=order,
+			product=self.product,
+			quantity=quantity,
+			unit_price="1.50",
+		)
+		return order
+
+	def remember_checkout(self, order, checkout_id="checkout-1"):
+		session = self.client.session
+		session["sumup_checkouts"] = {str(order.pk): checkout_id}
+		session.save()
+
+	def test_paid_checkout_marks_the_order_paid(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+
+		with patch(
+			"orders.views.retrieve_checkout",
+			return_value={"id": "checkout-1", "status": "PAID", "transaction_id": "tx-sumup-1"},
+		) as retrieve:
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]), follow=True)
+
+		retrieve.assert_called_once_with("checkout-1")
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		payment = order.payment
+		self.assertEqual(order.status, Order.Status.PAID)
+		self.assertEqual(payment.amount, Decimal("3.00"))
+		self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+		self.assertEqual(payment.provider, "SumUp")
+		self.assertEqual(payment.external_id, "tx-sumup-1")
+		self.assertIsNotNone(payment.paid_at)
+		self.assertEqual(self.product.stock, 3)
+		self.assertNotIn(str(order.pk), self.client.session.get("sumup_checkouts", {}))
+		self.assertContains(response, "Votre commande est payée.")
+		self.assertContains(response, "Payée")
+		self.assertNotContains(response, "Payer")
+
+	def test_paid_checkout_without_transaction_uses_the_checkout_id(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+
+		with patch(
+			"orders.views.retrieve_checkout",
+			return_value={"id": "checkout-1", "status": "PAID", "transaction_id": ""},
+		):
+			self.client.get(reverse("order_payment_return", args=[order.pk]))
+
+		order.refresh_from_db()
+		self.assertEqual(order.payment.external_id, "checkout-1")
+
+	def test_failed_checkout_keeps_the_order_pending_and_the_stock(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+
+		with patch(
+			"orders.views.retrieve_checkout",
+			return_value={"id": "checkout-1", "status": "FAILED", "transaction_id": ""},
+		):
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]), follow=True)
+
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		payment = order.payment
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertEqual(payment.status, Payment.Status.FAILED)
+		self.assertEqual(payment.amount, Decimal("3.00"))
+		self.assertEqual(payment.provider, "SumUp")
+		self.assertEqual(payment.external_id, "checkout-1")
+		self.assertIsNone(payment.paid_at)
+		self.assertEqual(self.product.stock, 3)
+		self.assertContains(response, "Le paiement a échoué. La commande reste en attente.")
+		self.assertContains(response, "Payer")
+
+	def test_expired_checkout_is_recorded_as_failed(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+
+		with patch(
+			"orders.views.retrieve_checkout",
+			return_value={"id": "checkout-1", "status": "EXPIRED", "transaction_id": ""},
+		):
+			self.client.get(reverse("order_payment_return", args=[order.pk]))
+
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertEqual(order.payment.status, Payment.Status.FAILED)
+		self.assertEqual(self.product.stock, 3)
+
+	def test_pending_checkout_does_not_record_a_payment(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+
+		with patch(
+			"orders.views.retrieve_checkout",
+			return_value={"id": "checkout-1", "status": "PENDING", "transaction_id": ""},
+		):
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]), follow=True)
+
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertFalse(Payment.objects.filter(order=order).exists())
+		self.assertEqual(self.product.stock, 3)
+		self.assertEqual(self.client.session["sumup_checkouts"][str(order.pk)], "checkout-1")
+		self.assertContains(response, "Le paiement reste en attente de confirmation.")
+
+	def test_failed_payment_is_updated_when_sumup_confirms(self):
+		order = self.make_order(Order.Status.PENDING)
+		payment = Payment.objects.create(
+			order=order,
+			amount=Decimal("0.00"),
+			status=Payment.Status.FAILED,
+			provider="Lydia",
+			external_id="old",
+		)
+		self.remember_checkout(order)
+
+		with patch(
+			"orders.views.retrieve_checkout",
+			return_value={"id": "checkout-1", "status": "PAID", "transaction_id": "tx-sumup-2"},
+		):
+			self.client.get(reverse("order_payment_return", args=[order.pk]))
+
+		order.refresh_from_db()
+		payment.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PAID)
+		self.assertEqual(Payment.objects.filter(order=order).count(), 1)
+		self.assertEqual(payment.status, Payment.Status.SUCCEEDED)
+		self.assertEqual(payment.amount, Decimal("3.00"))
+		self.assertEqual(payment.provider, "SumUp")
+		self.assertEqual(payment.external_id, "tx-sumup-2")
+		self.assertIsNotNone(payment.paid_at)
+
+	def test_other_statuses_are_refused(self):
+		for status in (
+			Order.Status.READY,
+			Order.Status.PICKED_UP,
+			Order.Status.CANCELLED,
+		):
+			with self.subTest(status=status):
+				order = self.make_order(status)
+				self.remember_checkout(order)
+				with patch("orders.views.retrieve_checkout") as retrieve:
+					response = self.client.get(
+						reverse("order_payment_return", args=[order.pk]),
+						follow=True,
+					)
+				retrieve.assert_not_called()
+				order.refresh_from_db()
+				self.product.refresh_from_db()
+				self.assertEqual(order.status, status)
+				self.assertFalse(Payment.objects.filter(order=order).exists())
+				self.assertEqual(self.product.stock, 3)
+				self.assertContains(response, "Cette commande ne peut plus être payée.")
+
+	def test_succeeded_or_refunded_payment_is_refused(self):
+		for payment_status in (Payment.Status.SUCCEEDED, Payment.Status.REFUNDED):
+			with self.subTest(payment_status=payment_status):
+				order = self.make_order(Order.Status.PENDING)
+				Payment.objects.create(
+					order=order,
+					amount=Decimal("3.00"),
+					status=payment_status,
+					provider="SumUp",
+					external_id="already",
+				)
+				self.remember_checkout(order)
+				with patch("orders.views.retrieve_checkout") as retrieve:
+					response = self.client.get(
+						reverse("order_payment_return", args=[order.pk]),
+						follow=True,
+					)
+				retrieve.assert_not_called()
+				order.refresh_from_db()
+				self.assertEqual(order.status, Order.Status.PENDING)
+				self.assertEqual(order.payment.status, payment_status)
+				self.assertEqual(order.payment.external_id, "already")
+				self.assertContains(response, "Cette commande ne peut plus être payée.")
+
+	def test_already_paid_order_is_confirmed_without_calling_sumup(self):
+		order = self.make_order(Order.Status.PAID)
+		self.remember_checkout(order)
+
+		with patch("orders.views.retrieve_checkout") as retrieve:
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]), follow=True)
+
+		retrieve.assert_not_called()
+		self.assertContains(response, "Votre commande est payée.")
+
+	def test_return_without_checkout_keeps_the_order_pending(self):
+		order = self.make_order(Order.Status.PENDING)
+
+		with patch("orders.views.retrieve_checkout") as retrieve:
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]), follow=True)
+
+		retrieve.assert_not_called()
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertFalse(Payment.objects.filter(order=order).exists())
+		self.assertContains(response, "Aucun paiement en cours pour cette commande.")
+
+	def test_another_members_order_is_refused(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+		other = User.objects.create_user(
+			email="other@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		self.client.force_login(other)
+
+		with patch("orders.views.retrieve_checkout") as retrieve:
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]))
+
+		retrieve.assert_not_called()
+		self.assertEqual(response.status_code, 404)
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertEqual(self.product.stock, 3)
+
+	def test_visitor_is_sent_to_login(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.client.logout()
+		url = reverse("order_payment_return", args=[order.pk])
+
+		response = self.client.get(url)
+
+		self.assertRedirects(response, f"{reverse('login')}?next={url}")
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+
+	def test_missing_configuration_keeps_the_order_pending(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+
+		with patch("orders.views.retrieve_checkout", side_effect=SumUpNotConfigured):
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]), follow=True)
+
+		order.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertFalse(Payment.objects.filter(order=order).exists())
+		self.assertEqual(self.client.session["sumup_checkouts"][str(order.pk)], "checkout-1")
+		self.assertContains(response, "Le paiement en ligne est indisponible pour le moment.")
+
+	def test_sumup_error_keeps_the_order_pending(self):
+		order = self.make_order(Order.Status.PENDING)
+		self.remember_checkout(order)
+
+		with patch("orders.views.retrieve_checkout", side_effect=SumUpError("down")):
+			response = self.client.get(reverse("order_payment_return", args=[order.pk]), follow=True)
+
+		order.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertFalse(Payment.objects.filter(order=order).exists())
+		self.assertEqual(self.product.stock, 3)
+		self.assertContains(response, "Impossible de confirmer le paiement. Réessayez.")

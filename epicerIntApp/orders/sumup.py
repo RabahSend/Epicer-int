@@ -15,6 +15,9 @@ class SumUpError(Exception):
 	"""L'appel à l'API SumUp a échoué."""
 
 
+PROVIDER = "SumUp"
+
+
 def sumup_config():
 	api_key = settings.SUMUP_API_KEY
 	merchant_code = settings.SUMUP_MERCHANT_CODE

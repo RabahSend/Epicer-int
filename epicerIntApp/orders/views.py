@@ -14,10 +14,12 @@ from orders.services import (
 	can_start_order_payment,
 	cancel_order as cancel_pending_order,
 	close_distribution,
+	collect_order_payment,
 	create_order_from_cart,
+	fail_order_payment,
 	open_distribution,
 )
-from orders.sumup import SumUpError, SumUpNotConfigured, create_checkout
+from orders.sumup import PROVIDER, SumUpError, SumUpNotConfigured, create_checkout, retrieve_checkout
 from orders.models import Distribution, Order
 from catalog.models import Product
 
@@ -163,10 +165,56 @@ def pay_order(request, order_id):
 	return redirect(payment_url)
 
 
+def _sumup_checkout_id(request, order):
+	return request.session.get("sumup_checkouts", {}).get(str(order.pk), "")
+
+
+def _forget_sumup_checkout(request, order):
+	checkouts = request.session.get("sumup_checkouts", {})
+	checkouts.pop(str(order.pk), None)
+	request.session["sumup_checkouts"] = checkouts
+
+
 @login_required
 def payment_return(request, order_id):
-	# Le statut Sumup sera confirmé ici avant de marquer la commande payée
-	get_object_or_404(Order, pk=order_id, user=request.user)
+	order = get_object_or_404(Order, pk=order_id, user=request.user)
+	if order.status == Order.Status.PAID:
+		messages.success(request, "Votre commande est payée.")
+		return redirect("orders")
+	if not can_start_order_payment(order):
+		messages.error(request, "Cette commande ne peut plus être payée.")
+		return redirect("orders")
+
+	checkout_id = _sumup_checkout_id(request, order)
+	if not checkout_id:
+		messages.error(request, "Aucun paiement en cours pour cette commande.")
+		return redirect("orders")
+
+	try:
+		checkout = retrieve_checkout(checkout_id)
+	except SumUpNotConfigured:
+		messages.error(request, "Le paiement en ligne est indisponible pour le moment.")
+		return redirect("orders")
+	except SumUpError:
+		messages.error(request, "Impossible de confirmer le paiement. Réessayez.")
+		return redirect("orders")
+
+	# transaction_id n'existe qu'une fois le paiement réussi. sinon on garde l'id du checkout
+	external_id = checkout["transaction_id"] or checkout["id"]
+	if checkout["status"] == "PAID":
+		if collect_order_payment(order, provider=PROVIDER, external_id=external_id):
+			_forget_sumup_checkout(request, order)
+			messages.success(request, "Votre commande est payée.")
+		else:
+			messages.error(request, "Cette commande ne peut plus être payée.")
+	elif checkout["status"] in ("FAILED", "EXPIRED"):
+		if fail_order_payment(order, provider=PROVIDER, external_id=external_id):
+			_forget_sumup_checkout(request, order)
+			messages.error(request, "Le paiement a échoué. La commande reste en attente.")
+		else:
+			messages.error(request, "Cette commande ne peut plus être payée.")
+	else:
+		messages.info(request, "Le paiement reste en attente de confirmation.")
 	return redirect("orders")
 
 
