@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
-from PIL import Image
+from PIL import Image 
 
 from .models import Category, Product
 

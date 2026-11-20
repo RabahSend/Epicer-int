@@ -63,6 +63,18 @@ def mark_order_as_ready(order):
 	return True
 
 
+def can_start_order_payment(order):
+	if order.status != Order.Status.PENDING:
+		return False
+	payment = Payment.objects.filter(order=order).first()
+	if payment is not None and payment.status in (
+		Payment.Status.SUCCEEDED,
+		Payment.Status.REFUNDED,
+	):
+		return False
+	return True
+
+
 def collect_order_payment(order, provider="", external_id=""):
 	if order.status != Order.Status.PENDING:
 		return False
@@ -94,6 +106,29 @@ def collect_order_payment(order, provider="", external_id=""):
 			payment.paid_at = now
 			payment.save()
 		order.status = Order.Status.PAID
+		order.save(update_fields=["status", "updated_at"])
+	return True
+
+
+def cancel_order(order):
+	if order.status != Order.Status.PENDING:
+		return False
+
+	with transaction.atomic():
+		current = (
+			Order.objects.select_for_update()
+			.filter(pk=order.pk, status=Order.Status.PENDING)
+			.first()
+		)
+		if current is None:
+			return False
+
+		for item in current.items.order_by("product_id"):
+			product = Product.objects.select_for_update().get(pk=item.product_id)
+			product.stock += item.quantity
+			product.save(update_fields=["stock"])
+
+		order.status = Order.Status.CANCELLED
 		order.save(update_fields=["status", "updated_at"])
 	return True
 
