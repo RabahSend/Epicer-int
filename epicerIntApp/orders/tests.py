@@ -628,6 +628,22 @@ class CollectOrderPaymentTests(TestCase):
 				self.assertEqual(order.status, status)
 				self.assertFalse(Payment.objects.filter(order=order).exists())
 
+	def test_stale_pending_order_is_not_paid_after_cancellation(self):
+		order = self.make_order(Order.Status.PENDING)
+		seen_before_cancel = Order.objects.get(pk=order.pk)
+		self.assertTrue(cancel_order(order))
+		self.product.refresh_from_db()
+		stock_after_cancel = self.product.stock
+
+		self.assertFalse(
+			collect_order_payment(seen_before_cancel, provider="Lydia", external_id="tx-race")
+		)
+		seen_before_cancel.refresh_from_db()
+		self.product.refresh_from_db()
+		self.assertEqual(seen_before_cancel.status, Order.Status.CANCELLED)
+		self.assertFalse(Payment.objects.filter(order=order).exists())
+		self.assertEqual(self.product.stock, stock_after_cancel)
+
 	def test_failed_payment_is_updated(self):
 		order = self.make_order(Order.Status.PENDING)
 		payment = Payment.objects.create(
