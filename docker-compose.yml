@@ -38,6 +38,23 @@ services:
       db:
         condition: service_healthy
 
+  e2e:
+    profiles: ["e2e"]
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    volumes:
+      - ./epicerIntApp:/app:z
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: epicerint
+      POSTGRES_USER: epicerint
+      POSTGRES_PASSWORD: epicerint
+    depends_on:
+      db:
+        condition: service_healthy
+
   proxy:
     image: nginx:1.27-alpine
     ports:

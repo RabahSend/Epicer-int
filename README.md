@@ -38,18 +38,19 @@ Pour arrêter les services :
 docker compose down
 ```
 
-## Tests end to end
+## Tests
 
-Ces tests ouvrent un navigateur. Ils se lancent à part de `python manage.py test`. PostgreSQL doit être joignable, avec `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER` et `POSTGRES_PASSWORD`.
+Les tests tournent dans Docker. Les paquets restent dans les conteneurs.
 
 ```bash
-cd epicerIntApp
-pip install -r requirements.txt -r requirements-e2e.txt
-playwright install chromium
-python manage.py test --tag=e2e
+docker compose run --rm --entrypoint python web manage.py test --exclude-tag=e2e
 ```
 
-Les autres tests restent sur `python manage.py test --exclude-tag=e2e`.
+Les tests end to end ouvrent Chromium dans un conteneur à part. Le premier lancement construit l'image.
+
+```bash
+docker compose --profile e2e run --rm --build e2e
+```
 
 ## Règles d'accès
 
