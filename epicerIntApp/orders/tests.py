@@ -598,6 +598,15 @@ class CollectOrderPaymentTests(TestCase):
 		)
 		return order
 
+	def test_admin_sees_products_on_the_order_list(self):
+		self.make_order(Order.Status.PAID, quantity=2)
+		self.client.force_login(self.admin)
+
+		response = self.client.get(reverse("admin:orders_order_changelist"))
+
+		self.assertContains(response, "Produits")
+		self.assertContains(response, "Pâtes × 2")
+
 	def test_pending_order_is_paid_and_payment_is_recorded(self):
 		order = self.make_order(Order.Status.PENDING)
 
