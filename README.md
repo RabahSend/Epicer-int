@@ -38,6 +38,19 @@ Pour arrêter les services :
 docker compose down
 ```
 
+## Tests end to end
+
+Ces tests ouvrent un navigateur. Ils se lancent à part de `python manage.py test`. PostgreSQL doit être joignable, avec `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER` et `POSTGRES_PASSWORD`.
+
+```bash
+cd epicerIntApp
+pip install -r requirements.txt -r requirements-e2e.txt
+playwright install chromium
+python manage.py test --tag=e2e
+```
+
+Les autres tests restent sur `python manage.py test --exclude-tag=e2e`.
+
 ## Règles d'accès
 
 - Les visiteurs peuvent consulter les produits actifs et leur disponibilité.

@@ -41,7 +41,51 @@ jobs:
 
       - name: Run tests
         working-directory: epicerIntApp
-        run: python manage.py test
+        run: python manage.py test --exclude-tag=e2e
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: epicerint
+          POSTGRES_USER: epicerint
+          POSTGRES_PASSWORD: epicerint
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: epicerint
+          POSTGRES_USER: epicerint
+          POSTGRES_PASSWORD: epicerint
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U epicerint -d epicerint"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        working-directory: epicerIntApp
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-e2e.txt
+          playwright install --with-deps chromium
+
+      - name: Run end to end tests
+        working-directory: epicerIntApp
+        run: python manage.py test --tag=e2e
         env:
           DJANGO_SETTINGS_MODULE: config.settings
           POSTGRES_HOST: localhost
