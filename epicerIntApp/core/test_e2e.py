@@ -135,3 +135,42 @@ class EndToEndTests(StaticLiveServerTestCase):
 		self.goto("cart")
 		self.expect(self.page.get_by_role("heading", name="Mon compte")).to_be_visible()
 		self.expect(self.page.get_by_text("Le panier est réservé aux membres dont la cotisation est active.")).to_be_visible()
+
+	def test_admin_activates_membership_opens_distribution_and_lists_orders(self):
+		member = User.objects.create_user(
+			email="membre@example.com",
+			password="secure-test-password",
+		)
+		admin = User.objects.create_superuser(
+			email="admin@example.com",
+			password="secure-test-password",
+		)
+
+		self.goto("login")
+		self.page.locator("#id_username").fill(admin.email)
+		self.page.locator("#id_password").fill("secure-test-password")
+		self.page.get_by_role("button", name="Se connecter").click()
+		self.expect(self.page.get_by_role("button", name="Déconnexion")).to_be_visible()
+
+		self.goto("admin:users_user_change", member.pk)
+		self.page.get_by_label("Cotisation active").check()
+		self.page.get_by_role("button", name="Save", exact=True).click()
+		self.expect(self.page.get_by_text("was changed successfully")).to_be_visible()
+		member.refresh_from_db()
+		self.assertTrue(member.is_member)
+
+		self.goto("distribution_create")
+		self.page.locator("#id_starts_at").fill("2026-12-01T10:00")
+		self.page.locator("#id_ends_at").fill("2026-12-01T18:00")
+		self.page.locator("#id_location").fill("TSP")
+		self.page.get_by_role("button", name="Enregistrer").click()
+		self.expect(self.page.get_by_text("La distribution a été créée.")).to_be_visible()
+		self.page.get_by_role("button", name="Ouvrir").click()
+		self.expect(self.page.get_by_text("La distribution est ouverte.")).to_be_visible()
+
+		distribution = Distribution.objects.get(location="TSP")
+		self.assertTrue(distribution.is_active)
+		Order.objects.create(user=member, distribution=distribution, status=Order.Status.PENDING)
+		self.page.locator("table").get_by_role("link", name="Commandes").click()
+		self.expect(self.page.get_by_text("membre@example.com")).to_be_visible()
+		self.expect(self.page.get_by_text("En attente de paiement")).to_be_visible()
