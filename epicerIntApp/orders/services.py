@@ -63,6 +63,18 @@ def mark_order_as_ready(order):
 	return True
 
 
+def can_start_order_payment(order):
+	if order.status != Order.Status.PENDING:
+		return False
+	payment = Payment.objects.filter(order=order).first()
+	if payment is not None and payment.status in (
+		Payment.Status.SUCCEEDED,
+		Payment.Status.REFUNDED,
+	):
+		return False
+	return True
+
+
 def collect_order_payment(order, provider="", external_id=""):
 	with transaction.atomic():
 		# Relu sous verrou : une annulation peut passer après la première lecture du statut.
