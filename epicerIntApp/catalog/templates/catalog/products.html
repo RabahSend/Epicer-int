@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
+  <p class="product-greeting">
+    Bonjour{% if user.is_authenticated and user.first_name %} {{ user.first_name }} !{% endif %}
+  </p>
+
   {% comment %}
   <section class="hero">
     <p class="hero__eyebrow">Les produits</p>

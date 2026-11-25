@@ -83,6 +83,11 @@
     font-size: 0.8rem;
     color: var(--vert-clair);
   }
+  .product-greeting {
+    margin: 1.5rem 0 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
 
   .product-list {
     display: grid;

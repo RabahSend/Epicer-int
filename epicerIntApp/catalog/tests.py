@@ -5,7 +5,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
-from PIL import Image 
+from PIL import Image
+from users.models import User
 
 from .models import Category, Product
 
@@ -18,6 +19,35 @@ def create_test_image():
 
 
 class ProductAvailabilityTests(TestCase):
+	def test_authenticated_user_sees_greeting_with_first_name(self):
+		user = User.objects.create_user(
+			email="prenom@example.com",
+			password="secure-test-password",
+			first_name="Rabah",
+		)
+		self.client.force_login(user)
+
+		response = self.client.get(reverse("products"))
+
+		self.assertContains(response, "Bonjour Rabah")
+
+	def test_authenticated_user_without_first_name_sees_simple_greeting(self):
+		user = User.objects.create_user(
+			email="sans-prenom@example.com",
+			password="secure-test-password",
+		)
+		self.client.force_login(user)
+
+		response = self.client.get(reverse("products"))
+
+		self.assertContains(response, "Bonjour")
+		self.assertNotContains(response, "Bonjour ")
+
+	def test_visitor_sees_simple_greeting(self):
+		response = self.client.get(reverse("products"))
+
+		self.assertContains(response, "Bonjour")
+
 	def test_product_image_is_saved(self):
 		png_image = create_test_image()
 		with TemporaryDirectory() as media_root:
