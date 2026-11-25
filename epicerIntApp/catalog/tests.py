@@ -29,7 +29,7 @@ class ProductAvailabilityTests(TestCase):
 
 		response = self.client.get(reverse("products"))
 
-		self.assertContains(response, "Bonjour Rabah")
+		self.assertContains(response, "Bonjour Rabah !")
 
 	def test_authenticated_user_without_first_name_sees_simple_greeting(self):
 		user = User.objects.create_user(
@@ -40,13 +40,12 @@ class ProductAvailabilityTests(TestCase):
 
 		response = self.client.get(reverse("products"))
 
-		self.assertContains(response, "Bonjour")
-		self.assertNotContains(response, "Bonjour ")
+		self.assertContains(response, "Bonjour !")
 
 	def test_visitor_sees_simple_greeting(self):
 		response = self.client.get(reverse("products"))
 
-		self.assertContains(response, "Bonjour")
+		self.assertContains(response, "Bonjour !")
 
 	def test_product_image_is_saved(self):
 		png_image = create_test_image()
@@ -96,6 +95,7 @@ class ProductAvailabilityTests(TestCase):
 		self.assertContains(response, "Riz")
 		self.assertContains(response, "4 en stock")
 		self.assertContains(response, reverse("signup"))
+		self.assertContains(response, "core/images/no-photo.png")
 
 	def test_products_are_grouped_under_their_category(self):
 		pasta_category = Category.objects.create(name="Féculents")
