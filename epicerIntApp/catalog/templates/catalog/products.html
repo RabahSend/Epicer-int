@@ -1,6 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
+  <p class="product-greeting">
+    Bonjour{% if user.is_authenticated and user.first_name %} {{ user.first_name }}{% endif %} !
+  </p>
+
   {% comment %}
   <section class="hero">
     <p class="hero__eyebrow">Les produits</p>
@@ -17,15 +22,24 @@
           {% for product in category.products.all %}
             {% if product.is_active %}
               <article class="product-item">
-                {% if product.image %}
-                  <img
-                    class="product-item__image"
-                    src="{{ product.image.url }}"
-                    alt="{{ product.name }}"
-                    loading="lazy"
-                  >
-                {% endif %}
-                <div>
+                <div class="product-item__image-slot">
+                  {% if product.image %}
+                    <img
+                      class="product-item__image"
+                      src="{{ product.image.url }}"
+                      alt="{{ product.name }}"
+                      loading="lazy"
+                    >
+                  {% else %}
+                    <img
+                      class="product-item__image"
+                      src="{% static 'core/images/no-photo.png' %}"
+                      alt="Aucune photo disponible"
+                      loading="lazy"
+                    >
+                  {% endif %}
+                </div>
+                <div class="product-item__details">
                   <h3>{{ product.name }}</h3>
                   <p>{{ product.price }} €</p>
                   {% if product.description %}<p>{{ product.description }}</p>{% endif %}
@@ -35,22 +49,24 @@
                     <p class="availability">Indisponible</p>
                   {% endif %}
                 </div>
-                {% if user.is_authenticated and user.is_member %}
-                  {% if product.stock > 0 %}
-                    <form action="{% url 'add_to_cart' product.pk %}" method="post">
-                      {% csrf_token %}
-                      <label for="quantity-{{ product.pk }}">Quantité</label>
-                      <input id="quantity-{{ product.pk }}" name="quantity" type="number" min="1" max="{{ product.stock }}" value="1" required>
-                      <button type="submit">Ajouter au panier</button>
-                    </form>
+                <div class="product-item__action">
+                  {% if user.is_authenticated and user.is_member %}
+                    {% if product.stock > 0 %}
+                      <form action="{% url 'add_to_cart' product.pk %}" method="post">
+                        {% csrf_token %}
+                        <label for="quantity-{{ product.pk }}">Quantité</label>
+                        <input id="quantity-{{ product.pk }}" name="quantity" type="number" min="1" max="{{ product.stock }}" value="1" required>
+                        <button type="submit">Ajouter au panier</button>
+                      </form>
+                    {% else %}
+                      <p>Indisponible pour le moment</p>
+                    {% endif %}
+                  {% elif user.is_authenticated %}
+                    <a class="button-link" href="{% url 'profile' %}">Cotiser pour commander</a>
                   {% else %}
-                    <p>Indisponible pour le moment</p>
+                    <a class="button-link" href="{% url 'signup' %}">Adhérer et créer un compte</a>
                   {% endif %}
-                {% elif user.is_authenticated %}
-                  <a class="button-link" href="{% url 'profile' %}">Cotiser pour commander</a>
-                {% else %}
-                  <a class="button-link" href="{% url 'signup' %}">Adhérer et créer un compte</a>
-                {% endif %}
+                </div>
               </article>
             {% endif %}
           {% endfor %}
