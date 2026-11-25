@@ -8,6 +8,7 @@ from django.test import tag
 from django.urls import reverse
 
 from catalog.models import Category, Product
+from users.models import User
 
 
 @tag("e2e")
@@ -15,7 +16,6 @@ class EndToEndTests(StaticLiveServerTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()
-		# Le job de tests Django n'installe pas Playwright. On ne l'importe que si ces tests tournent.
 		from playwright.sync_api import expect, sync_playwright
 
 		cls.expect = expect
@@ -55,3 +55,22 @@ class EndToEndTests(StaticLiveServerTestCase):
 		self.expect(self.page.get_by_role("link", name="Adhérer et créer un compte")).to_be_visible()
 		self.expect(self.page.get_by_role("button", name="Ajouter au panier")).to_have_count(0)
 		self.expect(nav.get_by_role("link", name="Mon panier")).to_have_count(0)
+
+	def test_signup_creates_account_without_active_membership(self):
+		self.goto("signup")
+		self.page.locator("#id_first_name").fill("Ada")
+		self.page.locator("#id_last_name").fill("Lovelace")
+		self.page.locator("#id_email").fill("ada@example.com")
+		self.page.locator("#id_password1").fill("secure-test-password")
+		self.page.locator("#id_password2").fill("secure-test-password")
+		self.page.get_by_role("button", name="Créer mon compte").click()
+
+		self.expect(self.page.get_by_role("heading", name="Mon compte")).to_be_visible()
+		self.expect(self.page.get_by_text("ada@example.com")).to_be_visible()
+		self.expect(self.page.get_by_text("En attente de validation")).to_be_visible()
+		nav = self.page.get_by_role("navigation", name="Navigation principale")
+		self.expect(nav.get_by_role("link", name="Mon panier")).to_have_count(0)
+
+		user = User.objects.get(email="ada@example.com")
+		self.assertFalse(user.is_member)
+		self.assertEqual(user.username, "ada@example.com")
