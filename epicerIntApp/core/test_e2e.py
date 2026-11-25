@@ -6,8 +6,10 @@ os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import tag
 from django.urls import reverse
+from django.utils import timezone
 
 from catalog.models import Category, Product
+from orders.models import Distribution, Order
 from users.models import User
 
 
@@ -74,3 +76,38 @@ class EndToEndTests(StaticLiveServerTestCase):
 		user = User.objects.get(email="ada@example.com")
 		self.assertFalse(user.is_member)
 		self.assertEqual(user.username, "ada@example.com")
+
+	def test_member_adds_product_within_stock_and_places_order(self):
+		category = Category.objects.create(name="Féculents")
+		product = Product.objects.create(name="Pâtes", category=category, price="1.50", stock=3)
+		member = User.objects.create_user(
+			email="membre@example.com",
+			password="secure-test-password",
+			is_member=True,
+		)
+		Distribution.objects.create(starts_at=timezone.now(), location="C206", is_active=True)
+
+		self.goto("login")
+		self.page.locator("#id_username").fill(member.email)
+		self.page.locator("#id_password").fill("secure-test-password")
+		self.page.get_by_role("button", name="Se connecter").click()
+		self.expect(self.page.get_by_role("button", name="Déconnexion")).to_be_visible()
+
+		self.goto("products")
+		self.page.locator(f"#quantity-{product.pk}").fill("2")
+		self.page.get_by_role("button", name="Ajouter au panier").click()
+		self.expect(self.page.get_by_text("Pâtes a été ajouté au panier.")).to_be_visible()
+
+		nav = self.page.get_by_role("navigation", name="Navigation principale")
+		nav.get_by_role("link", name="Mon panier").click()
+		self.expect(self.page.get_by_role("heading", name="Mon panier")).to_be_visible()
+		self.page.get_by_role("button", name="Valider la commande").click()
+
+		self.expect(self.page.get_by_text("Votre commande a été enregistrée.")).to_be_visible()
+		self.expect(self.page.get_by_text("En attente de paiement")).to_be_visible()
+		order = Order.objects.get()
+		self.assertEqual(order.user, member)
+		self.assertEqual(order.status, Order.Status.PENDING)
+		self.assertEqual(order.items.get().quantity, 2)
+		product.refresh_from_db()
+		self.assertEqual(product.stock, 1)
