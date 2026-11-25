@@ -17,9 +17,34 @@
               <li>{{ item.product.name }} x {{ item.quantity }} - {{ item.unit_price }} €</li>
             {% endfor %}
           </ul>
+          {% if order.status == "pending" %}
+            <button type="button" data-cancel-open="cancel-order-{{ order.pk }}">Annuler la commande</button>
+            <dialog class="confirm-dialog" id="cancel-order-{{ order.pk }}" aria-labelledby="cancel-order-question-{{ order.pk }}">
+              <p id="cancel-order-question-{{ order.pk }}">Êtes-vous sûr de vouloir annuler cette commande ?</p>
+              <div class="confirm-dialog__actions">
+                <form method="post" action="{% url 'cancel_order' order.pk %}">
+                  {% csrf_token %}
+                  <button type="submit">Oui</button>
+                </form>
+                <button type="button" class="confirm-dialog__dismiss" data-cancel-close>Non</button>
+              </div>
+            </dialog>
+          {% endif %}
         </article>
       {% endfor %}
     </section>
+    <script>
+      document.addEventListener("click", (event) => {
+        const openButton = event.target.closest("[data-cancel-open]");
+        if (openButton) {
+          document.getElementById(openButton.dataset.cancelOpen).showModal();
+        }
+        const closeButton = event.target.closest("[data-cancel-close]");
+        if (closeButton) {
+          closeButton.closest("dialog").close();
+        }
+      });
+    </script>
   {% else %}
     <p>Vous n'avez pas encore de commande.</p>
   {% endif %}

@@ -7,7 +7,12 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from orders.forms import DistributionForm
 from orders.selectors import NOT_PICKED_UP, PICKED_UP, orders_for_distribution
-from orders.services import close_distribution, create_order_from_cart, open_distribution
+from orders.services import (
+	cancel_order as cancel_pending_order,
+	close_distribution,
+	create_order_from_cart,
+	open_distribution,
+)
 from orders.models import Distribution, Order
 from catalog.models import Product
 
@@ -112,6 +117,17 @@ def place_order(request):
 
 	request.session["cart"] = {}
 	messages.success(request, "Votre commande a été enregistrée.")
+	return redirect("orders")
+
+
+@login_required
+@require_POST
+def cancel_order(request, order_id):
+	order = get_object_or_404(Order, pk=order_id, user=request.user)
+	if cancel_pending_order(order):
+		messages.success(request, "Votre commande a été annulée.")
+	else:
+		messages.error(request, "Cette commande ne peut plus être annulée.")
 	return redirect("orders")
 
 

@@ -64,22 +64,28 @@ def mark_order_as_ready(order):
 
 
 def collect_order_payment(order, provider="", external_id=""):
-	if order.status != Order.Status.PENDING:
-		return False
-
-	payment = Payment.objects.filter(order=order).first()
-	if payment is not None and payment.status != Payment.Status.FAILED:
-		return False
-
-	amount = sum(
-		(item.unit_price * item.quantity for item in order.items.all()),
-		Decimal("0"),
-	)
-	now = timezone.now()
 	with transaction.atomic():
+		# Relu sous verrou : une annulation peut passer après la première lecture du statut.
+		current = (
+			Order.objects.select_for_update()
+			.filter(pk=order.pk, status=Order.Status.PENDING)
+			.first()
+		)
+		if current is None:
+			return False
+
+		payment = Payment.objects.filter(order=current).first()
+		if payment is not None and payment.status != Payment.Status.FAILED:
+			return False
+
+		amount = sum(
+			(item.unit_price * item.quantity for item in current.items.all()),
+			Decimal("0"),
+		)
+		now = timezone.now()
 		if payment is None:
 			Payment.objects.create(
-				order=order,
+				order=current,
 				amount=amount,
 				status=Payment.Status.SUCCEEDED,
 				provider=provider,
@@ -93,7 +99,31 @@ def collect_order_payment(order, provider="", external_id=""):
 			payment.external_id = external_id
 			payment.paid_at = now
 			payment.save()
-		order.status = Order.Status.PAID
+		current.status = Order.Status.PAID
+		current.save(update_fields=["status", "updated_at"])
+		order.status = current.status
+	return True
+
+
+def cancel_order(order):
+	if order.status != Order.Status.PENDING:
+		return False
+
+	with transaction.atomic():
+		current = (
+			Order.objects.select_for_update()
+			.filter(pk=order.pk, status=Order.Status.PENDING)
+			.first()
+		)
+		if current is None:
+			return False
+
+		for item in current.items.order_by("product_id"):
+			product = Product.objects.select_for_update().get(pk=item.product_id)
+			product.stock += item.quantity
+			product.save(update_fields=["stock"])
+
+		order.status = Order.Status.CANCELLED
 		order.save(update_fields=["status", "updated_at"])
 	return True
 

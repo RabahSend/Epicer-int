@@ -128,6 +128,22 @@
   form p input { padding: 0.45rem; font: inherit; max-width: 100%; }
   .filter-nav { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
   .filter-nav a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+  .confirm-dialog {
+    border: 0;
+    padding: 1.25rem;
+    background: var(--papier);
+    color: var(--encre);
+    max-width: min(24rem, calc(100vw - 2rem));
+  }
+  .confirm-dialog::backdrop { background: rgb(28 25 23 / 45%); }
+  .confirm-dialog p { margin: 0 0 1rem; }
+  .confirm-dialog__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .confirm-dialog__actions form { margin: 0; }
+  .confirm-dialog__dismiss {
+    background: transparent;
+    color: var(--vert);
+    border: 1px solid var(--vert);
+  }
   
   @media (max-width: 700px) {
     .site-header__inner {
