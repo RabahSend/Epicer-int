@@ -111,3 +111,27 @@ class EndToEndTests(StaticLiveServerTestCase):
 		self.assertEqual(order.items.get().quantity, 2)
 		product.refresh_from_db()
 		self.assertEqual(product.stock, 1)
+
+	def test_non_member_cannot_add_to_cart(self):
+		category = Category.objects.create(name="Féculents")
+		Product.objects.create(name="Pâtes", category=category, price="1.50", stock=3)
+		visitor = User.objects.create_user(
+			email="visiteur@example.com",
+			password="secure-test-password",
+		)
+
+		self.goto("login")
+		self.page.locator("#id_username").fill(visitor.email)
+		self.page.locator("#id_password").fill("secure-test-password")
+		self.page.get_by_role("button", name="Se connecter").click()
+		self.expect(self.page.get_by_role("button", name="Déconnexion")).to_be_visible()
+
+		self.goto("products")
+		self.expect(self.page.get_by_role("link", name="Cotiser pour commander")).to_be_visible()
+		self.expect(self.page.get_by_role("button", name="Ajouter au panier")).to_have_count(0)
+		nav = self.page.get_by_role("navigation", name="Navigation principale")
+		self.expect(nav.get_by_role("link", name="Mon panier")).to_have_count(0)
+
+		self.goto("cart")
+		self.expect(self.page.get_by_role("heading", name="Mon compte")).to_be_visible()
+		self.expect(self.page.get_by_text("Le panier est réservé aux membres dont la cotisation est active.")).to_be_visible()
