@@ -106,8 +106,8 @@ def add_to_cart(request, product_id):
 
 	cart[str(product.pk)] = current_quantity + quantity
 	request.session["cart"] = cart
-	messages.success(request, f"{product.name} a été ajouté au panier.")
-	return redirect("cart")
+	messages.success(request, f"{product.name} a été ajouté au panier.", extra_tags="toast")
+	return redirect("products")
 
 @member_required
 @require_POST

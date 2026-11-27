@@ -37,7 +37,9 @@
   </header>
 
   <main class="site-main">
-    {% for message in messages %}<p class="message">{{ message }}</p>{% endfor %}
+    {% for message in messages %}
+      <p class="message{% if 'toast' in message.tags %} message--toast{% endif %}"{% if 'toast' in message.tags %} role="status" aria-live="polite"{% endif %}>{{ message }}</p>
+    {% endfor %}
     {% block content %}{% endblock %}
   </main>
 </body>

@@ -46,10 +46,12 @@ class CartAccessTests(TestCase):
 		)
 		self.client.force_login(user)
 
-		response = self.client.post(self.add_url, {"quantity": 2})
+		response = self.client.post(self.add_url, {"quantity": 2}, follow=True)
 
-		self.assertRedirects(response, reverse("cart"))
+		self.assertRedirects(response, reverse("products"))
 		self.assertEqual(self.client.session["cart"], {str(self.product.pk): 2})
+		self.assertContains(response, f"{self.product.name} a été ajouté au panier.")
+		self.assertContains(response, 'class="message message--toast"')
 
 		response = self.client.post(self.add_url, {"quantity": 2})
 
