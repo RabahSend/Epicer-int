@@ -186,3 +186,8 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+SUMUP_API_KEY = os.environ.get("SUMUP_API_KEY", "")
+SUMUP_MERCHANT_CODE = os.environ.get("SUMUP_MERCHANT_CODE", "")
+SUMUP_CURRENCY = os.environ.get("SUMUP_CURRENCY", "EUR")
+SUMUP_API_BASE_URL = os.environ.get("SUMUP_API_BASE_URL", "https://api.sumup.com")

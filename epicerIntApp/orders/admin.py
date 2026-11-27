@@ -101,7 +101,17 @@ def mark_as_picked_up(modeladmin, request, queryset):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "distribution", "status", "created_at", "picked_up_at")
+    list_display = ("id", "user", "distribution", "products", "status", "created_at", "picked_up_at")
     list_filter = ("status",)
     actions = [collect_payment, fail_payment, mark_as_ready, mark_as_picked_up]
     inlines = [OrderItemInline, PaymentInline]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("items__product")
+
+    @admin.display(description="Produits")
+    def products(self, order):
+        return ", ".join(
+            f"{item.product.name} x {item.quantity}"
+            for item in order.items.all()
+        )
