@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Mon panier — Épicer'INT{% endblock %}
 
 {% block content %}
   <h1>Mon panier</h1>
   {% if items %}
-    <form method="post">
+    <form method="post" data-cart-update>
       {% csrf_token %}
       <table class="cart-table">
         <thead><tr><th>Produit</th><th>Prix unitaire</th><th>Quantité</th><th>Sous-total</th></tr></thead>
@@ -21,7 +22,6 @@
         </tbody>
       </table>
       <p>Total indicatif : {{ total }} €</p>
-      <button type="submit">Mettre à jour le panier</button>
     </form>
     <form method="post" action="{% url 'place_order' %}">
       {% csrf_token %}
@@ -31,4 +31,8 @@
     <p>Votre panier est vide.</p>
   {% endif %}
   <a href="{% url 'products' %}">Retour aux produits</a>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'core/js/cart-update.js' %}" defer></script>
 {% endblock %}
